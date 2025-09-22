@@ -47,6 +47,9 @@ class FinanceController extends GetxController {
   Future<void> _initializeFinanceData() async {
     _isLoading.value = true;
 
+    // Charger toutes les données financières au démarrage
+    await refreshData();
+
     // Écouter les changements des comptes en temps réel
     _accountsSubscription = _accountsService.getAccountsStream().listen((accounts) {
       _accounts.value = accounts;

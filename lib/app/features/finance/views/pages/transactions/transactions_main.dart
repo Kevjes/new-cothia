@@ -1,28 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../controllers/budgets_controller.dart';
+import '../../../controllers/finance_controller.dart';
 import '../../../../../core/theme/app_colors.dart';
-import 'budgets_dashboard.dart';
-import 'budgets_stats.dart';
+import 'transactions_dashboard.dart';
+import 'transactions_categories.dart';
+import 'transactions_stats.dart';
 
-class BudgetsMain extends StatefulWidget {
-  const BudgetsMain({Key? key}) : super(key: key);
+class TransactionsMain extends StatefulWidget {
+  const TransactionsMain({Key? key}) : super(key: key);
 
   @override
-  State<BudgetsMain> createState() => _BudgetsMainState();
+  State<TransactionsMain> createState() => _TransactionsMainState();
 }
 
-class _BudgetsMainState extends State<BudgetsMain> {
+class _TransactionsMainState extends State<TransactionsMain> {
   final PageController _pageController = PageController();
   final ValueNotifier<int> _currentPageIndex = ValueNotifier<int>(0);
 
   final List<String> _pageLabels = [
     'Tableau de Bord',
+    'Catégories',
     'Statistiques',
   ];
 
   final List<IconData> _pageIcons = [
     Icons.dashboard,
+    Icons.category,
     Icons.analytics,
   ];
 
@@ -35,11 +38,9 @@ class _BudgetsMainState extends State<BudgetsMain> {
 
   @override
   Widget build(BuildContext context) {
-    Get.put<BudgetsController>(BudgetsController());
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Budgets & Objectifs'),
+        title: const Text('Transactions'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(80),
           child: ValueListenableBuilder<int>(
@@ -133,9 +134,15 @@ class _BudgetsMainState extends State<BudgetsMain> {
         controller: _pageController,
         onPageChanged: (index) => _currentPageIndex.value = index,
         children: const [
-          BudgetsDashboard(),
-          BudgetsStats(),
+          TransactionsDashboard(),
+          TransactionsCategories(),
+          TransactionsStats(),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Get.toNamed('/finance/add-transaction'),
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

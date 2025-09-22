@@ -4,6 +4,7 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/finance_service.dart';
 import '../../data/services/accounts_service.dart';
 import '../../data/services/budgets_service.dart';
+import '../../data/services/transactions_service.dart';
 
 class AppBinding extends Bindings {
   @override
@@ -13,5 +14,6 @@ class AppBinding extends Bindings {
     Get.put<FinanceService>(FinanceService(), permanent: true);
     Get.put<AccountsService>(AccountsService(), permanent: true);
     Get.put<BudgetsService>(BudgetsService(), permanent: true);
+    Get.put<TransactionsService>(TransactionsService(), permanent: true);
   }
 }

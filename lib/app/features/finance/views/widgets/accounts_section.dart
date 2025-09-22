@@ -108,7 +108,7 @@ class AccountsSection extends GetView<FinanceController> {
 
   Widget _buildAccountsList() {
     return SizedBox(
-      height: 120,
+      height: 150,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: controller.accounts.length,
@@ -150,6 +150,7 @@ class AccountsSection extends GetView<FinanceController> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
@@ -208,7 +209,7 @@ class AccountsSection extends GetView<FinanceController> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               account.name,
               style: const TextStyle(
@@ -218,7 +219,7 @@ class AccountsSection extends GetView<FinanceController> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               account.formattedBalance,
               style: TextStyle(
@@ -228,7 +229,7 @@ class AccountsSection extends GetView<FinanceController> {
               ),
             ),
             if (account.description.isNotEmpty) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 account.description,
                 style: TextStyle(

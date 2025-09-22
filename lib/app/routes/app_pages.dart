@@ -17,6 +17,7 @@ import '../features/finance/views/pages/currencies/currencies_list.dart';
 import '../features/finance/views/pages/budgets/budgets_main.dart';
 import '../features/finance/views/pages/budgets/budgets_list.dart';
 import '../features/finance/views/pages/budgets/budget_create.dart';
+import '../features/finance/views/pages/transactions/transactions_main.dart';
 import '../views/splash_view.dart';
 import '../bindings/splash_binding.dart';
 
@@ -96,6 +97,11 @@ class AppPages {
     GetPage(
       name: _Paths.FINANCE_BUDGETS_CREATE,
       page: () => const BudgetCreate(),
+      binding: FinanceBinding(),
+    ),
+    GetPage(
+      name: _Paths.FINANCE_TRANSACTIONS,
+      page: () => const TransactionsMain(),
       binding: FinanceBinding(),
     ),
   ];

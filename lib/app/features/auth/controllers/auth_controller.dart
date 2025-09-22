@@ -4,7 +4,7 @@ import '../../../data/services/auth_service.dart';
 import '../../../routes/app_pages.dart';
 
 class AuthController extends GetxController {
-  static AuthController get to => Get.find<AuthController>();
+  static AuthController get to => Get.put(AuthController());
 
   final AuthService _authService = AuthService.to;
 

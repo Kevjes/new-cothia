@@ -49,13 +49,21 @@ class AddTransactionView extends GetView<AddTransactionController> {
                     children: [
                       _buildCategorySelector(),
                       const SizedBox(height: 16),
+                      _buildBudgetSelector(),
+                      const SizedBox(height: 16),
                     ],
                   );
                 }
               }),
-              _buildDateSelector(),
+              _buildStatusSelector(),
+              const SizedBox(height: 16),
+              _buildDateTimeSelector(),
               const SizedBox(height: 16),
               _buildDescriptionField(),
+              const SizedBox(height: 16),
+              _buildLocationField(),
+              const SizedBox(height: 16),
+              _buildTagsField(),
               const SizedBox(height: 32),
               _buildSaveButton(),
               const SizedBox(height: 16),
@@ -70,9 +78,13 @@ class AddTransactionView extends GetView<AddTransactionController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Type de transaction',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Get.theme.colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 12),
         Obx(() => Row(
@@ -121,12 +133,15 @@ class AddTransactionView extends GetView<AddTransactionController> {
   ) {
     return GestureDetector(
       onTap: () => controller.setTransactionType(type),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
           border: Border.all(
-            color: isSelected ? color : AppColors.grey300,
+            color: isSelected ? color : Get.theme.brightness == Brightness.dark
+                ? AppColors.grey700
+                : AppColors.grey300,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -135,14 +150,18 @@ class AddTransactionView extends GetView<AddTransactionController> {
           children: [
             Icon(
               icon,
-              color: isSelected ? color : AppColors.grey600,
+              color: isSelected ? color : Get.theme.brightness == Brightness.dark
+                  ? AppColors.grey400
+                  : AppColors.grey600,
               size: 24,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : AppColors.grey600,
+                color: isSelected ? color : Get.theme.brightness == Brightness.dark
+                    ? AppColors.grey400
+                    : AppColors.grey600,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 fontSize: 12,
               ),
@@ -157,10 +176,10 @@ class AddTransactionView extends GetView<AddTransactionController> {
     return TextFormField(
       controller: controller.titleController,
       validator: controller.validateTitle,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Titre *',
         hintText: 'Ex: Courses, Salaire, etc.',
-        prefixIcon: Icon(Icons.title),
+        prefixIcon: Icon(Icons.title, color: AppColors.primary),
       ),
       textCapitalization: TextCapitalization.sentences,
     );
@@ -174,10 +193,10 @@ class AddTransactionView extends GetView<AddTransactionController> {
           child: TextFormField(
             controller: controller.amountController,
             validator: controller.validateAmount,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Montant *',
               hintText: '0',
-              prefixIcon: Icon(Icons.attach_money),
+              prefixIcon: Icon(Icons.attach_money, color: AppColors.primary),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
@@ -216,22 +235,29 @@ class AddTransactionView extends GetView<AddTransactionController> {
               controller.setSelectedAccount(account);
             }
           },
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Compte *',
-            prefixIcon: Icon(Icons.account_balance_wallet),
+            prefixIcon: Icon(Icons.account_balance_wallet, color: AppColors.primary),
           ),
           items: controller.accounts.map((account) {
             return DropdownMenuItem(
               value: account.id,
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: Text(account.name),
+                  Flexible(
+                    child: Text(
+                      account.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     account.formattedBalance,
                     style: TextStyle(
-                      color: AppColors.grey600,
+                      color: Get.theme.brightness == Brightness.dark
+                          ? AppColors.grey400
+                          : AppColors.grey600,
                       fontSize: 12,
                     ),
                   ),
@@ -257,22 +283,29 @@ class AddTransactionView extends GetView<AddTransactionController> {
               controller.setSelectedToAccount(account);
             }
           },
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Vers le compte *',
-            prefixIcon: Icon(Icons.arrow_forward),
+            prefixIcon: Icon(Icons.arrow_forward, color: AppColors.primary),
           ),
           items: controller.availableToAccounts.map((account) {
             return DropdownMenuItem(
               value: account.id,
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: Text(account.name),
+                  Flexible(
+                    child: Text(
+                      account.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     account.formattedBalance,
                     style: TextStyle(
-                      color: AppColors.grey600,
+                      color: Get.theme.brightness == Brightness.dark
+                          ? AppColors.grey400
+                          : AppColors.grey600,
                       fontSize: 12,
                     ),
                   ),
@@ -299,9 +332,9 @@ class AddTransactionView extends GetView<AddTransactionController> {
               controller.setSelectedCategory(category);
             }
           },
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Catégorie *',
-            prefixIcon: Icon(Icons.category),
+            prefixIcon: Icon(Icons.category, color: AppColors.primary),
           ),
           items: controller.categories.map((category) {
             return DropdownMenuItem(
@@ -319,44 +352,264 @@ class AddTransactionView extends GetView<AddTransactionController> {
         ));
   }
 
-  Widget _buildDateSelector() {
+  Widget _buildBudgetSelector() {
+    return Obx(() {
+      final budgets = controller.budgets;
+      if (budgets.isEmpty || controller.transactionType != TransactionType.expense) {
+        return const SizedBox.shrink();
+      }
+
+      return DropdownButtonFormField<String>(
+        value: controller.selectedBudget?.id,
+        onChanged: (budgetId) {
+          if (budgetId != null) {
+            final budget = budgets.firstWhere((b) => b.id == budgetId);
+            controller.setSelectedBudget(budget);
+          }
+        },
+        decoration: InputDecoration(
+          labelText: 'Budget (optionnel)',
+          prefixIcon: Icon(Icons.account_balance, color: AppColors.primary),
+          helperText: 'Liez cette dépense à un budget',
+        ),
+        items: [
+          const DropdownMenuItem(
+            value: null,
+            child: Text('Aucun budget'),
+          ),
+          ...budgets.map((budget) {
+            return DropdownMenuItem(
+              value: budget.id,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      budget.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${budget.progressText}',
+                    style: TextStyle(
+                      color: Get.theme.brightness == Brightness.dark
+                          ? AppColors.grey400
+                          : AppColors.grey600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      );
+    });
+  }
+
+  Widget _buildStatusSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Statut de la transaction',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Get.theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Obx(() => Row(
+              children: [
+                Expanded(
+                  child: _buildStatusButton(
+                    'Terminée',
+                    Icons.check_circle,
+                    AppColors.success,
+                    TransactionStatus.completed,
+                    controller.transactionStatus == TransactionStatus.completed,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatusButton(
+                    'En attente',
+                    Icons.schedule,
+                    AppColors.warning,
+                    TransactionStatus.pending,
+                    controller.transactionStatus == TransactionStatus.pending,
+                  ),
+                ),
+              ],
+            )),
+      ],
+    );
+  }
+
+  Widget _buildStatusButton(
+    String label,
+    IconData icon,
+    Color color,
+    TransactionStatus status,
+    bool isSelected,
+  ) {
     return GestureDetector(
-      onTap: controller.selectDate,
-      child: Container(
-        padding: const EdgeInsets.all(16),
+      onTap: () => controller.setTransactionStatus(status),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.grey300),
+          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? color : Get.theme.brightness == Brightness.dark
+                ? AppColors.grey700
+                : AppColors.grey300,
+            width: isSelected ? 2 : 1,
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_today, color: AppColors.grey600),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Date',
-                  style: TextStyle(
-                    color: AppColors.grey600,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Obx(() => Text(
-                      DateFormat('dd MMMM yyyy').format(controller.selectedDate),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    )),
-              ],
+            Icon(
+              icon,
+              color: isSelected ? color : Get.theme.brightness == Brightness.dark
+                  ? AppColors.grey400
+                  : AppColors.grey600,
+              size: 20,
             ),
-            const Spacer(),
-            Icon(Icons.arrow_drop_down, color: AppColors.grey600),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? color : Get.theme.brightness == Brightness.dark
+                    ? AppColors.grey400
+                    : AppColors.grey600,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDateTimeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Date et heure',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Get.theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: controller.selectDate,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Get.theme.brightness == Brightness.dark
+                          ? AppColors.grey700
+                          : AppColors.grey300,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today, color: AppColors.primary),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Date',
+                            style: TextStyle(
+                              color: Get.theme.brightness == Brightness.dark
+                                  ? AppColors.grey400
+                                  : AppColors.grey600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Obx(() => Text(
+                                DateFormat('dd MMM yyyy').format(controller.selectedDate),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Get.theme.colorScheme.onSurface,
+                                ),
+                              )),
+                        ],
+                      ),
+                      const Spacer(),
+                      Icon(Icons.arrow_drop_down, color: AppColors.grey600),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: controller.selectTime,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Get.theme.brightness == Brightness.dark
+                          ? AppColors.grey700
+                          : AppColors.grey300,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.access_time, color: AppColors.primary),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Heure',
+                            style: TextStyle(
+                              color: Get.theme.brightness == Brightness.dark
+                                  ? AppColors.grey400
+                                  : AppColors.grey600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Obx(() => Text(
+                                controller.selectedTime.format(Get.context!),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Get.theme.colorScheme.onSurface,
+                                ),
+                              )),
+                        ],
+                      ),
+                      const Spacer(),
+                      Icon(Icons.arrow_drop_down, color: AppColors.grey600),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -364,13 +617,72 @@ class AddTransactionView extends GetView<AddTransactionController> {
     return TextFormField(
       controller: controller.descriptionController,
       validator: controller.validateDescription,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Description (optionnel)',
         hintText: 'Ajouter une note...',
-        prefixIcon: Icon(Icons.note),
+        prefixIcon: Icon(Icons.note, color: AppColors.primary),
       ),
       maxLines: 3,
       textCapitalization: TextCapitalization.sentences,
+    );
+  }
+
+  Widget _buildLocationField() {
+    return TextFormField(
+      controller: controller.locationController,
+      decoration: InputDecoration(
+        labelText: 'Lieu (optionnel)',
+        hintText: 'Ex: Supermarché, Restaurant...',
+        prefixIcon: Icon(Icons.location_on, color: AppColors.primary),
+        suffixIcon: IconButton(
+          onPressed: controller.getCurrentLocation,
+          icon: Icon(Icons.my_location, color: AppColors.primary),
+          tooltip: 'Utiliser ma position',
+        ),
+      ),
+      textCapitalization: TextCapitalization.words,
+    );
+  }
+
+  Widget _buildTagsField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tags (optionnel)',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Get.theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Obx(() => Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ...controller.tags.map((tag) => Chip(
+                      label: Text(tag),
+                      onDeleted: () => controller.removeTag(tag),
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      deleteIconColor: AppColors.primary,
+                    )),
+                ActionChip(
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 4),
+                      const Text('Ajouter'),
+                    ],
+                  ),
+                  onPressed: controller.showAddTagDialog,
+                  backgroundColor: Colors.transparent,
+                  side: BorderSide(color: AppColors.primary),
+                ),
+              ],
+            )),
+      ],
     );
   }
 
@@ -381,6 +693,7 @@ class AddTransactionView extends GetView<AddTransactionController> {
             onPressed: controller.isLoading ? null : controller.saveTransaction,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
+              backgroundColor: AppColors.primary,
             ),
             child: controller.isLoading
                 ? const SizedBox(
@@ -391,9 +704,15 @@ class AddTransactionView extends GetView<AddTransactionController> {
                       color: Colors.white,
                     ),
                   )
-                : const Text(
-                    'Enregistrer',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                : Text(
+                    controller.transactionStatus == TransactionStatus.pending
+                        ? 'Enregistrer en attente'
+                        : 'Enregistrer la transaction',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
           )),
     );

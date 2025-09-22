@@ -1,16 +1,13 @@
 import 'package:get/get.dart';
 import '../../../data/services/budgets_service.dart';
-import '../../../data/services/accounts_service.dart';
 import '../models/budget_model.dart';
 import '../models/currency.dart';
-import '../models/account_model.dart';
 import 'dart:async';
 
 class BudgetsController extends GetxController {
   static BudgetsController get to => Get.find<BudgetsController>();
 
   final BudgetsService _budgetsService = BudgetsService.to;
-  final AccountsService _accountsService = AccountsService.to;
 
   final _budgets = <BudgetModel>[].obs;
   final _objectives = <BudgetModel>[].obs;

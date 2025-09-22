@@ -1,3 +1,4 @@
+import 'package:cothia_app/app/features/finance/controllers/budgets_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/services/finance_service.dart';
@@ -58,7 +59,7 @@ class AddTransactionController extends GetxController {
 
   List<AccountModel> get accounts => _financeService.accounts.where((a) => a.isActive).toList();
   List<AccountModel> get availableToAccounts => accounts.where((a) => a.id != selectedAccount?.id).toList();
-  List<BudgetModel> get budgets => _budgetsService.budgets.where((b) => b.isActive && !b.isObjective).toList();
+  List<BudgetModel> get budgets => BudgetsController.to.budgets.where((b) => b.isActive && !b.isObjective).toList();
 
   List<CategoryModel> get categories {
     switch (transactionType) {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1076321563098",
+    "project_id": "cothia",
+    "storage_bucket": "cothia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1076321563098:android:a272ef8eee73d2b72450e3",
+        "android_client_info": {
+          "package_name": "com.menosi.cothia_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRwEWjxkYpE0zJ4TrqFPLIh7U1ld_cOtM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

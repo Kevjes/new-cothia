@@ -1,0 +1,5 @@
+- Pas de Theme.of(context) mais plutot utiliser Get.theme, et pareil pour les autres options
+- Se rassurer que chaque widget prend en charge les 02 themes
+- Eviter les variables dynamiques et faire l'effort de typer tous les donnees qui sont passer aux fonctions
+- Eviter l'utilisation des ButtomSheets et creer des pages a la place pour une meilleure experience
+- utilise la class AppRoutes pour la navigation et ne jamais entrer les valeur en dur comme Get.toNamed("/my-page") mais toujours utiliser appRoutes comme ceci Get.toNamed(AppRoutes.MY_PAGE)

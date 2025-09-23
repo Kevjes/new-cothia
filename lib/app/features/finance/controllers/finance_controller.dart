@@ -223,7 +223,142 @@ class FinanceController extends GetxController {
   }
 
   // Créer un nouveau compte
-  Future<void> createAccount(AccountModel account) async {
+  // Créer un compte avec paramètres
+  Future<bool> createAccount({
+    required String name,
+    required AccountType type,
+    required double initialBalance,
+    String? description,
+  }) async {
+    try {
+      _isLoading.value = true;
+
+      if (_currentEntityId == null) {
+        Get.snackbar(
+          'Erreur',
+          'Aucune entité sélectionnée',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+
+      final now = DateTime.now();
+      final account = AccountModel(
+        id: '', // Sera généré par Firebase
+        name: name,
+        type: type,
+        entityId: _currentEntityId!,
+        initialBalance: initialBalance,
+        currentBalance: initialBalance,
+        projectedBalance: initialBalance,
+        currency: 'FCFA',
+        description: description,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _accountService.createAccount(account);
+      await loadAccounts(); // Recharger les comptes
+
+      Get.snackbar(
+        'Succès',
+        'Compte "$name" créé avec succès',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+
+      return true;
+
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de créer le compte: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+      );
+      return false;
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
+  // Mettre à jour un compte
+  Future<bool> updateAccount(AccountModel account) async {
+    try {
+      _isLoading.value = true;
+
+      await _accountService.updateAccount(account);
+      await loadAccounts(); // Recharger les comptes
+
+      Get.snackbar(
+        'Succès',
+        'Compte "${account.name}" modifié avec succès',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+
+      return true;
+
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de modifier le compte: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+      );
+      return false;
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
+  // Supprimer un compte
+  Future<bool> deleteAccount(String accountId) async {
+    try {
+      _isLoading.value = true;
+
+      await _accountService.deleteAccount(accountId);
+      await loadAccounts(); // Recharger les comptes
+
+      Get.snackbar(
+        'Succès',
+        'Compte supprimé avec succès',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+
+      return true;
+
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de supprimer le compte: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+      );
+      return false;
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
+  // Créer un compte (méthode originale pour compatibilité)
+  Future<void> createAccountModel(AccountModel account) async {
     try {
       _isLoading.value = true;
 

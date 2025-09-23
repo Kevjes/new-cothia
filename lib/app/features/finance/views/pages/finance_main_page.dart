@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import '../../controllers/finance_controller.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'finance_overview_page.dart';
+import 'accounts/accounts_list_page.dart';
+import 'accounts/account_create_page.dart';
 
 class FinanceMainPage extends GetView<FinanceController> {
   const FinanceMainPage({super.key});
@@ -165,7 +167,7 @@ class FinanceMainPage extends GetView<FinanceController> {
             ),
           )),
           Obx(() => Text(
-            'Patrimoine: ${controller.totalWealth.toStringAsFixed(2)} €',
+            'Patrimoine: ${controller.totalWealth.toStringAsFixed(0)} FCFA',
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 12,
@@ -265,12 +267,12 @@ class FinanceMainPage extends GetView<FinanceController> {
 
   void _navigateToAccounts() {
     Get.back();
-    Get.snackbar('Info', 'Liste des comptes - À implémenter');
+    Get.to(() => const AccountsListPage());
   }
 
   void _navigateToCreateAccount() {
     Get.back();
-    Get.snackbar('Info', 'Créer compte - À implémenter');
+    Get.to(() => const AccountCreatePage());
   }
 
   void _navigateToTransactions() {

@@ -10,7 +10,7 @@ import '../features/splash/views/pages/splash_page.dart';
 import '../features/entities/bindings/entities_binding.dart';
 import '../features/entities/views/pages/entities_main_page.dart';
 import '../features/finance/bindings/finance_binding.dart';
-import '../features/finance/views/pages/finance_dashboard_page.dart';
+import '../features/finance/views/pages/finance_main_page.dart';
 
 part 'app_routes.dart';
 
@@ -47,7 +47,7 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.FINANCE,
-      page: () => const FinanceDashboardPage(),
+      page: () => const FinanceMainPage(),
       binding: FinanceBinding(),
     ),
   ];

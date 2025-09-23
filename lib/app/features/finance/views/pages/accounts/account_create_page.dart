@@ -1,3 +1,4 @@
+import 'package:cothia_app/app/core/utils/get_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -488,8 +489,7 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
 
       // Retour automatique à la page précédente si succès
       if (success) {
-        await Future.delayed(const Duration(milliseconds: 500)); // Laisser le temps au snackbar de s'afficher
-        Get.back();
+        Get.safeBack();
       }
 
     } catch (e) {
@@ -543,8 +543,7 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
 
       // Retour automatique à la page précédente si succès
       if (success) {
-        await Future.delayed(const Duration(milliseconds: 500)); // Laisser le temps au snackbar de s'afficher
-        Get.back();
+        Get.safeBack();
       }
 
     } catch (e) {

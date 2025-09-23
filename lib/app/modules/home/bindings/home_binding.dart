@@ -1,8 +1,6 @@
 import 'package:get/get.dart';
 
 import '../controllers/home_controller.dart';
-import '../../../features/finance/controllers/finance_controller.dart';
-import '../../../data/services/finance_service.dart';
 
 class HomeBinding extends Bindings {
   @override
@@ -11,8 +9,7 @@ class HomeBinding extends Bindings {
       () => HomeController(),
     );
 
-    // Ajouter le FinanceController pour les onglets
-    Get.lazyPut<FinanceService>(() => FinanceService(), fenix: true);
-    Get.lazyPut<FinanceController>(() => FinanceController(), fenix: true);
+    // L'AuthController est maintenant géré par le SplashController
+    // Ne plus le créer ici pour éviter les boucles infinies
   }
 }

@@ -1,220 +1,237 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../models/user_model.dart';
+import '../models/entity_model.dart';
 import '../../core/constants/app_constants.dart';
-import '../../features/auth/models/user_model.dart';
+import 'storage_service.dart';
 
-class AuthService extends GetxService {
-  static AuthService get to => Get.find<AuthService>();
-
+class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  late SharedPreferences _prefs;
+  StorageService? _storageService;
 
-  final _currentUser = Rxn<UserModel>();
-  final _isLoading = false.obs;
+  AuthService();
 
-  UserModel? get currentUser => _currentUser.value;
-  bool get isLoading => _isLoading.value;
-  bool get isLoggedIn => _currentUser.value != null;
-
-  @override
-  Future<void> onInit() async {
-    super.onInit();
-    await _initPrefs();
-    _setupAuthListener();
+  Future<StorageService> _getStorageService() async {
+    _storageService ??= await StorageService.getInstance();
+    return _storageService!;
   }
 
-  Future<void> _initPrefs() async {
-    _prefs = await SharedPreferences.getInstance();
-  }
+  User? get currentUser => _auth.currentUser;
 
-  void _setupAuthListener() {
-    _auth.authStateChanges().listen((User? user) async {
-      if (user != null) {
-        await _loadUserData(user);
-      } else {
-        _currentUser.value = null;
-        await _clearUserData();
-      }
-    });
-  }
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  Future<void> _loadUserData(User user) async {
+  // Sign up with email and password
+  Future<UserCredential?> signUpWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
     try {
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (userCredential.user != null) {
+        // Create personal entity
+        final personalEntity = await _createPersonalEntity(userCredential.user!.uid);
+
+        // Create user document in Firestore
+        final userModel = UserModel(
+          id: userCredential.user!.uid,
+          email: email,
+          personalEntityId: personalEntity.id,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await _createUserDocument(userModel);
+
+        // Save to local storage
+        final storageService = await _getStorageService();
+        await storageService.saveUserSession(
+          userId: userModel.id,
+          email: userModel.email,
+          personalEntityId: userModel.personalEntityId,
+        );
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw Exception('Erreur lors de la création du compte: ${e.toString()}');
+    }
+  }
+
+  // Sign in with email and password
+  Future<UserCredential?> signInWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (userCredential.user != null) {
+        // Get user data from Firestore
+        final userDoc = await _firestore
+            .collection(AppConstants.usersCollection)
+            .doc(userCredential.user!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userModel = UserModel.fromFirestore(userDoc);
+
+          // Save to local storage
+          final storageService = await _getStorageService();
+          await storageService.saveUserSession(
+            userId: userModel.id,
+            email: userModel.email,
+            personalEntityId: userModel.personalEntityId,
+          );
+        }
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw Exception('Erreur lors de la connexion: ${e.toString()}');
+    }
+  }
+
+  // Sign out
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+      final storageService = await _getStorageService();
+      await storageService.clearAuthData();
+    } catch (e) {
+      throw Exception('Erreur lors de la déconnexion: ${e.toString()}');
+    }
+  }
+
+  // Create personal entity for new user
+  Future<EntityModel> _createPersonalEntity(String userId) async {
+    try {
+      final personalEntity = EntityModel.createPersonal(ownerId: userId);
+
+      final docRef = await _firestore
+          .collection(AppConstants.entitiesCollection)
+          .add(personalEntity.toFirestore());
+
+      return personalEntity.copyWith(id: docRef.id);
+    } catch (e) {
+      throw Exception('Erreur lors de la création de l\'entité personnelle: ${e.toString()}');
+    }
+  }
+
+  // Create user document in Firestore
+  Future<void> _createUserDocument(UserModel user) async {
+    try {
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(user.id)
+          .set(user.toFirestore());
+    } catch (e) {
+      throw Exception('Erreur lors de la création du profil utilisateur: ${e.toString()}');
+    }
+  }
+
+  // Get current user data
+  Future<UserModel?> getCurrentUserData() async {
+    try {
+      final user = currentUser;
+      if (user == null) return null;
+
       final userDoc = await _firestore
           .collection(AppConstants.usersCollection)
           .doc(user.uid)
           .get();
 
       if (userDoc.exists) {
-        _currentUser.value = UserModel.fromJson({
-          'id': user.uid,
-          ...userDoc.data()!,
-        });
-      } else {
-        final newUser = UserModel(
-          id: user.uid,
-          email: user.email!,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          createdAt: DateTime.now(),
-          lastLoginAt: DateTime.now(),
-        );
-
-        await _firestore
-            .collection(AppConstants.usersCollection)
-            .doc(user.uid)
-            .set(newUser.toJson());
-
-        _currentUser.value = newUser;
+        return UserModel.fromFirestore(userDoc);
       }
-
-      await _prefs.setString(AppConstants.userIdKey, user.uid);
+      return null;
     } catch (e) {
-      Get.snackbar('Erreur', 'Erreur lors du chargement des données utilisateur');
+      throw Exception('Erreur lors de la récupération des données utilisateur: ${e.toString()}');
     }
   }
 
-  Future<void> _clearUserData() async {
-    await _prefs.remove(AppConstants.userIdKey);
-    await _prefs.remove(AppConstants.userTokenKey);
-  }
-
-  Future<bool> signUp({
-    required String email,
-    required String password,
+  // Update user profile
+  Future<void> updateUserProfile({
     String? displayName,
   }) async {
     try {
-      _isLoading.value = true;
+      final user = currentUser;
+      if (user == null) throw Exception('Utilisateur non connecté');
 
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      if (credential.user != null && displayName != null) {
-        await credential.user!.updateDisplayName(displayName);
+      // Update Firebase Auth profile
+      if (displayName != null) {
+        await user.updateDisplayName(displayName);
       }
 
-      return true;
-    } on FirebaseAuthException catch (e) {
-      _handleAuthError(e);
-      return false;
+      // Update Firestore document
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(user.uid)
+          .update({
+        'displayName': displayName,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
     } catch (e) {
-      Get.snackbar('Erreur', 'Une erreur inattendue s\'est produite');
-      return false;
-    } finally {
-      _isLoading.value = false;
+      throw Exception('Erreur lors de la mise à jour du profil: ${e.toString()}');
     }
   }
 
-  Future<bool> signIn({
-    required String email,
-    required String password,
-  }) async {
+  // Reset password
+  Future<void> resetPassword(String email) async {
     try {
-      _isLoading.value = true;
-
-      await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      await _updateLastLogin();
-      return true;
-    } on FirebaseAuthException catch (e) {
-      _handleAuthError(e);
-      return false;
-    } catch (e) {
-      Get.snackbar('Erreur', 'Une erreur inattendue s\'est produite');
-      return false;
-    } finally {
-      _isLoading.value = false;
-    }
-  }
-
-  Future<bool> resetPassword({required String email}) async {
-    try {
-      _isLoading.value = true;
-
       await _auth.sendPasswordResetEmail(email: email);
-      Get.snackbar(
-        'Email envoyé',
-        'Un email de réinitialisation a été envoyé à $email',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return true;
     } on FirebaseAuthException catch (e) {
-      _handleAuthError(e);
-      return false;
+      throw _handleAuthException(e);
     } catch (e) {
-      Get.snackbar('Erreur', 'Une erreur inattendue s\'est produite');
-      return false;
-    } finally {
-      _isLoading.value = false;
+      throw Exception('Erreur lors de l\'envoi de l\'email de réinitialisation: ${e.toString()}');
     }
   }
 
-  Future<void> signOut() async {
+  // Check if user is authenticated and has valid session
+  Future<bool> isAuthenticated() async {
     try {
-      _isLoading.value = true;
-      await _auth.signOut();
+      final storageService = await _getStorageService();
+      final hasValidSession = storageService.hasValidSession();
+      final isFirebaseAuthenticated = currentUser != null;
+
+      return hasValidSession && isFirebaseAuthenticated;
     } catch (e) {
-      Get.snackbar('Erreur', 'Erreur lors de la déconnexion');
-    } finally {
-      _isLoading.value = false;
+      return false;
     }
   }
 
-  Future<void> _updateLastLogin() async {
-    if (_currentUser.value != null) {
-      try {
-        await _firestore
-            .collection(AppConstants.usersCollection)
-            .doc(_currentUser.value!.id)
-            .update({
-          'lastLoginAt': DateTime.now().toIso8601String(),
-        });
-
-        _currentUser.value = _currentUser.value!.copyWith(
-          lastLoginAt: DateTime.now(),
-        );
-      } catch (e) {
-        print('Erreur lors de la mise à jour de la dernière connexion: $e');
-      }
-    }
-  }
-
-  void _handleAuthError(FirebaseAuthException e) {
-    String message;
+  // Handle Firebase Auth exceptions
+  String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {
-      case 'user-not-found':
-        message = 'Aucun utilisateur trouvé avec cet email';
-        break;
-      case 'wrong-password':
-        message = 'Mot de passe incorrect';
-        break;
-      case 'email-already-in-use':
-        message = 'Cet email est déjà utilisé';
-        break;
       case 'weak-password':
-        message = 'Le mot de passe est trop faible';
-        break;
+        return 'Le mot de passe est trop faible.';
+      case 'email-already-in-use':
+        return 'Un compte existe déjà avec cette adresse email.';
+      case 'user-not-found':
+        return 'Aucun utilisateur trouvé avec cette adresse email.';
+      case 'wrong-password':
+        return 'Mot de passe incorrect.';
       case 'invalid-email':
-        message = 'Email invalide';
-        break;
+        return 'Adresse email invalide.';
       case 'user-disabled':
-        message = 'Ce compte a été désactivé';
-        break;
+        return 'Ce compte utilisateur a été désactivé.';
       case 'too-many-requests':
-        message = 'Trop de tentatives. Réessayez plus tard';
-        break;
+        return 'Trop de tentatives. Veuillez réessayer plus tard.';
+      case 'operation-not-allowed':
+        return 'Cette opération n\'est pas autorisée.';
       default:
-        message = 'Erreur d\'authentification: ${e.message}';
+        return 'Erreur d\'authentification: ${e.message}';
     }
-    Get.snackbar('Erreur', message, snackPosition: SnackPosition.BOTTOM);
   }
 }

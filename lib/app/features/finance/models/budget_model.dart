@@ -1,37 +1,53 @@
-import 'currency.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum BudgetType {
-  budget('budget', 'Budget'),
-  objective('objective', 'Objectif');
-
-  const BudgetType(this.code, this.label);
-  final String code;
-  final String label;
-
-  static BudgetType fromString(String value) {
-    return BudgetType.values.firstWhere(
-      (type) => type.code == value,
-      orElse: () => BudgetType.budget,
-    );
-  }
+  expense, // Plafond de dépense
+  saving,  // Plancher d'épargne
 }
 
 enum BudgetPeriod {
-  weekly('weekly', 'Hebdomadaire', 7),
-  monthly('monthly', 'Mensuel', 30),
-  quarterly('quarterly', 'Trimestriel', 90),
-  yearly('yearly', 'Annuel', 365),
-  custom('custom', 'Personnalisé', 0);
+  weekly,   // Hebdomadaire
+  monthly,  // Mensuel
+  quarterly, // Trimestriel
+  yearly,   // Annuel
+}
 
-  const BudgetPeriod(this.code, this.label, this.days);
-  final String code;
-  final String label;
-  final int days;
+class AutomationRule {
+  final bool isEnabled;
+  final String? sourceAccountId;
+  final String? destinationAccountId;
+  final double amount;
+  final int dayOfMonth; // Jour du mois d'exécution
+  final String? description;
 
-  static BudgetPeriod fromString(String value) {
-    return BudgetPeriod.values.firstWhere(
-      (period) => period.code == value,
-      orElse: () => BudgetPeriod.monthly,
+  AutomationRule({
+    required this.isEnabled,
+    this.sourceAccountId,
+    this.destinationAccountId,
+    required this.amount,
+    this.dayOfMonth = 1,
+    this.description,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'isEnabled': isEnabled,
+      'sourceAccountId': sourceAccountId,
+      'destinationAccountId': destinationAccountId,
+      'amount': amount,
+      'dayOfMonth': dayOfMonth,
+      'description': description,
+    };
+  }
+
+  factory AutomationRule.fromJson(Map<String, dynamic> json) {
+    return AutomationRule(
+      isEnabled: json['isEnabled'] ?? false,
+      sourceAccountId: json['sourceAccountId'],
+      destinationAccountId: json['destinationAccountId'],
+      amount: (json['amount'] ?? 0.0).toDouble(),
+      dayOfMonth: json['dayOfMonth'] ?? 1,
+      description: json['description'],
     );
   }
 }
@@ -41,69 +57,112 @@ class BudgetModel {
   final String name;
   final String? description;
   final BudgetType type;
-  final double amount;
-  final double spent;
-  final Currency currency;
   final BudgetPeriod period;
+  final double targetAmount;
+  final double currentAmount;
+  final String entityId;
+  final String? categoryId; // Catégorie associée
+  final String currency;
+  final bool isActive;
+  final AutomationRule? automationRule;
   final DateTime startDate;
-  final DateTime endDate;
-  final List<String> categoryIds;
-  final String? accountId;
-  final bool isRecurrent;
+  final DateTime? endDate;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final String userId;
-  final bool isActive;
-  final String? icon;
-  final String? color;
-  final Map<String, dynamic>? metadata;
 
   BudgetModel({
     required this.id,
     required this.name,
     this.description,
-    this.type = BudgetType.budget,
-    required this.amount,
-    this.spent = 0.0,
-    required this.currency,
+    required this.type,
     required this.period,
+    required this.targetAmount,
+    this.currentAmount = 0.0,
+    required this.entityId,
+    this.categoryId,
+    this.currency = 'EUR',
+    this.isActive = true,
+    this.automationRule,
     required this.startDate,
-    required this.endDate,
-    this.categoryIds = const [],
-    this.accountId,
-    this.isRecurrent = false,
+    this.endDate,
     required this.createdAt,
     required this.updatedAt,
-    required this.userId,
-    this.isActive = true,
-    this.icon,
-    this.color,
-    this.metadata,
   });
 
-  factory BudgetModel.fromJson(Map<String, dynamic> json) {
-    return BudgetModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      description: json['description'],
-      type: BudgetType.fromString(json['type'] ?? 'budget'),
-      amount: (json['amount'] ?? 0.0).toDouble(),
-      spent: (json['spent'] ?? 0.0).toDouble(),
-      currency: Currency.fromString(json['currency'] ?? 'FCFA'),
-      period: BudgetPeriod.fromString(json['period'] ?? 'monthly'),
-      startDate: DateTime.parse(json['startDate'] ?? DateTime.now().toIso8601String()),
-      endDate: DateTime.parse(json['endDate'] ?? DateTime.now().toIso8601String()),
-      categoryIds: List<String>.from(json['categoryIds'] ?? []),
-      accountId: json['accountId'],
-      isRecurrent: json['isRecurrent'] ?? false,
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
-      userId: json['userId'] ?? '',
-      isActive: json['isActive'] ?? true,
-      icon: json['icon'],
-      color: json['color'],
-      metadata: json['metadata'],
-    );
+  // Getters utiles
+  bool get isExpenseBudget => type == BudgetType.expense;
+  bool get isSavingBudget => type == BudgetType.saving;
+  bool get hasAutomation => automationRule?.isEnabled == true;
+
+  double get progressPercentage {
+    if (targetAmount == 0) return 0.0;
+    return (currentAmount / targetAmount * 100).clamp(0.0, 100.0);
+  }
+
+  double get remainingAmount {
+    if (isExpenseBudget) {
+      return (targetAmount - currentAmount).clamp(0.0, double.infinity);
+    } else {
+      return (targetAmount - currentAmount);
+    }
+  }
+
+  bool get isOverBudget => isExpenseBudget && currentAmount > targetAmount;
+  bool get isUnderTarget => isSavingBudget && currentAmount < targetAmount;
+
+  String get typeDisplayName {
+    switch (type) {
+      case BudgetType.expense:
+        return 'Budget dépense';
+      case BudgetType.saving:
+        return 'Budget épargne';
+    }
+  }
+
+  String get periodDisplayName {
+    switch (period) {
+      case BudgetPeriod.weekly:
+        return 'Hebdomadaire';
+      case BudgetPeriod.monthly:
+        return 'Mensuel';
+      case BudgetPeriod.quarterly:
+        return 'Trimestriel';
+      case BudgetPeriod.yearly:
+        return 'Annuel';
+    }
+  }
+
+  // Calcul de la période actuelle
+  DateTime get currentPeriodStart {
+    final now = DateTime.now();
+    switch (period) {
+      case BudgetPeriod.weekly:
+        final weekday = now.weekday;
+        return now.subtract(Duration(days: weekday - 1));
+      case BudgetPeriod.monthly:
+        return DateTime(now.year, now.month, 1);
+      case BudgetPeriod.quarterly:
+        final quarter = ((now.month - 1) ~/ 3) + 1;
+        return DateTime(now.year, (quarter - 1) * 3 + 1, 1);
+      case BudgetPeriod.yearly:
+        return DateTime(now.year, 1, 1);
+    }
+  }
+
+  DateTime get currentPeriodEnd {
+    final now = DateTime.now();
+    switch (period) {
+      case BudgetPeriod.weekly:
+        final weekday = now.weekday;
+        return now.add(Duration(days: 7 - weekday));
+      case BudgetPeriod.monthly:
+        return DateTime(now.year, now.month + 1, 1).subtract(const Duration(days: 1));
+      case BudgetPeriod.quarterly:
+        final quarter = ((now.month - 1) ~/ 3) + 1;
+        return DateTime(now.year, quarter * 3 + 1, 1).subtract(const Duration(days: 1));
+      case BudgetPeriod.yearly:
+        return DateTime(now.year + 1, 1, 1).subtract(const Duration(days: 1));
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -111,72 +170,106 @@ class BudgetModel {
       'id': id,
       'name': name,
       'description': description,
-      'type': type.code,
-      'amount': amount,
-      'spent': spent,
-      'currency': currency.code,
-      'period': period.code,
+      'type': type.name,
+      'period': period.name,
+      'targetAmount': targetAmount,
+      'currentAmount': currentAmount,
+      'entityId': entityId,
+      'categoryId': categoryId,
+      'currency': currency,
+      'isActive': isActive,
+      'automationRule': automationRule?.toJson(),
       'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
-      'categoryIds': categoryIds,
-      'accountId': accountId,
-      'isRecurrent': isRecurrent,
+      'endDate': endDate?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'userId': userId,
-      'isActive': isActive,
-      'icon': icon,
-      'color': color,
-      'metadata': metadata,
     };
   }
 
-  factory BudgetModel.fromMap(Map<String, dynamic> map, String id) {
+  factory BudgetModel.fromJson(Map<String, dynamic> json) {
     return BudgetModel(
-      id: id,
-      name: map['name'] ?? '',
-      description: map['description'],
-      type: BudgetType.fromString(map['type'] ?? 'budget'),
-      amount: (map['amount'] ?? 0.0).toDouble(),
-      spent: (map['spent'] ?? 0.0).toDouble(),
-      currency: map['currency'] is Map ? Currency.fromMap(map['currency']) : Currency.fromString(map['currency'] ?? 'FCFA'),
-      period: BudgetPeriod.fromString(map['period'] ?? 'monthly'),
-      startDate: map['startDate'] != null ? (map['startDate'].toDate() ?? DateTime.now()) : DateTime.now(),
-      endDate: map['endDate'] != null ? (map['endDate'].toDate() ?? DateTime.now()) : DateTime.now(),
-      categoryIds: List<String>.from(map['categoryIds'] ?? []),
-      accountId: map['accountId'],
-      isRecurrent: map['isRecurrent'] ?? false,
-      createdAt: map['createdAt'] != null ? (map['createdAt'].toDate() ?? DateTime.now()) : DateTime.now(),
-      updatedAt: map['updatedAt'] != null ? (map['updatedAt'].toDate() ?? DateTime.now()) : DateTime.now(),
-      userId: map['userId'] ?? '',
-      isActive: map['isActive'] ?? true,
-      icon: map['icon'],
-      color: map['color'],
-      metadata: map['metadata'],
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      description: json['description'],
+      type: BudgetType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => BudgetType.expense,
+      ),
+      period: BudgetPeriod.values.firstWhere(
+        (e) => e.name == json['period'],
+        orElse: () => BudgetPeriod.monthly,
+      ),
+      targetAmount: (json['targetAmount'] ?? 0.0).toDouble(),
+      currentAmount: (json['currentAmount'] ?? 0.0).toDouble(),
+      entityId: json['entityId'] ?? '',
+      categoryId: json['categoryId'],
+      currency: json['currency'] ?? 'EUR',
+      isActive: json['isActive'] ?? true,
+      automationRule: json['automationRule'] != null
+          ? AutomationRule.fromJson(json['automationRule'])
+          : null,
+      startDate: json['startDate'] != null
+          ? DateTime.parse(json['startDate'])
+          : DateTime.now(),
+      endDate: json['endDate'] != null
+          ? DateTime.parse(json['endDate'])
+          : null,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  factory BudgetModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return BudgetModel(
+      id: doc.id,
+      name: data['name'] ?? '',
+      description: data['description'],
+      type: BudgetType.values.firstWhere(
+        (e) => e.name == data['type'],
+        orElse: () => BudgetType.expense,
+      ),
+      period: BudgetPeriod.values.firstWhere(
+        (e) => e.name == data['period'],
+        orElse: () => BudgetPeriod.monthly,
+      ),
+      targetAmount: (data['targetAmount'] ?? 0.0).toDouble(),
+      currentAmount: (data['currentAmount'] ?? 0.0).toDouble(),
+      entityId: data['entityId'] ?? '',
+      categoryId: data['categoryId'],
+      currency: data['currency'] ?? 'EUR',
+      isActive: data['isActive'] ?? true,
+      automationRule: data['automationRule'] != null
+          ? AutomationRule.fromJson(data['automationRule'])
+          : null,
+      startDate: (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      endDate: (data['endDate'] as Timestamp?)?.toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
     return {
       'name': name,
       'description': description,
-      'type': type.code,
-      'amount': amount,
-      'spent': spent,
-      'currency': currency.toMap(),
-      'period': period.code,
-      'startDate': startDate,
-      'endDate': endDate,
-      'categoryIds': categoryIds,
-      'accountId': accountId,
-      'isRecurrent': isRecurrent,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
-      'userId': userId,
+      'type': type.name,
+      'period': period.name,
+      'targetAmount': targetAmount,
+      'currentAmount': currentAmount,
+      'entityId': entityId,
+      'categoryId': categoryId,
+      'currency': currency,
       'isActive': isActive,
-      'icon': icon,
-      'color': color,
-      'metadata': metadata,
+      'automationRule': automationRule?.toJson(),
+      'startDate': Timestamp.fromDate(startDate),
+      'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
 
@@ -185,96 +278,50 @@ class BudgetModel {
     String? name,
     String? description,
     BudgetType? type,
-    double? amount,
-    double? spent,
-    Currency? currency,
     BudgetPeriod? period,
+    double? targetAmount,
+    double? currentAmount,
+    String? entityId,
+    String? categoryId,
+    String? currency,
+    bool? isActive,
+    AutomationRule? automationRule,
     DateTime? startDate,
     DateTime? endDate,
-    List<String>? categoryIds,
-    String? accountId,
-    bool? isRecurrent,
     DateTime? createdAt,
     DateTime? updatedAt,
-    String? userId,
-    bool? isActive,
-    String? icon,
-    String? color,
-    Map<String, dynamic>? metadata,
   }) {
     return BudgetModel(
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
       type: type ?? this.type,
-      amount: amount ?? this.amount,
-      spent: spent ?? this.spent,
-      currency: currency ?? this.currency,
       period: period ?? this.period,
+      targetAmount: targetAmount ?? this.targetAmount,
+      currentAmount: currentAmount ?? this.currentAmount,
+      entityId: entityId ?? this.entityId,
+      categoryId: categoryId ?? this.categoryId,
+      currency: currency ?? this.currency,
+      isActive: isActive ?? this.isActive,
+      automationRule: automationRule ?? this.automationRule,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
-      categoryIds: categoryIds ?? this.categoryIds,
-      accountId: accountId ?? this.accountId,
-      isRecurrent: isRecurrent ?? this.isRecurrent,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      userId: userId ?? this.userId,
-      isActive: isActive ?? this.isActive,
-      icon: icon ?? this.icon,
-      color: color ?? this.color,
-      metadata: metadata ?? this.metadata,
     );
-  }
-
-  String get formattedAmount => currency.formatAmount(amount);
-  String get formattedSpent => currency.formatAmount(spent);
-
-  double get remainingAmount => amount - spent;
-  String get formattedRemaining => currency.formatAmount(remainingAmount);
-
-  double get spentPercentage => amount > 0 ? (spent / amount * 100).clamp(0, 100) : 0;
-
-  bool get isOverBudget => spent > amount;
-  bool get isCurrentlyActive => DateTime.now().isBefore(endDate) && DateTime.now().isAfter(startDate);
-
-  int get daysRemaining {
-    final now = DateTime.now();
-    if (now.isAfter(endDate)) return 0;
-    return endDate.difference(now).inDays;
-  }
-
-  bool get isObjective => type == BudgetType.objective;
-  bool get isBudget => type == BudgetType.budget;
-
-  String get progressText {
-    if (isObjective) {
-      return '$formattedSpent / $formattedAmount économisé';
-    } else {
-      return '$formattedSpent / $formattedAmount dépensé';
-    }
-  }
-
-  String get typeLabel => type.label;
-
-  DateTime? get nextRenewalDate {
-    if (!isRecurrent) return null;
-
-    switch (period) {
-      case BudgetPeriod.weekly:
-        return endDate.add(Duration(days: 7));
-      case BudgetPeriod.monthly:
-        return DateTime(endDate.year, endDate.month + 1, endDate.day);
-      case BudgetPeriod.quarterly:
-        return DateTime(endDate.year, endDate.month + 3, endDate.day);
-      case BudgetPeriod.yearly:
-        return DateTime(endDate.year + 1, endDate.month, endDate.day);
-      case BudgetPeriod.custom:
-        return null;
-    }
   }
 
   @override
   String toString() {
-    return 'BudgetModel(id: $id, name: $name, type: ${type.label}, spent: $formattedSpent/$formattedAmount)';
+    return 'BudgetModel(id: $id, name: $name, type: $type, targetAmount: $targetAmount, currentAmount: $currentAmount)';
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is BudgetModel && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }

@@ -3,23 +3,14 @@ import 'package:get/get.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
 import '../features/auth/bindings/auth_binding.dart';
-import '../features/auth/views/auth_view.dart';
+import '../features/auth/views/pages/login_page.dart';
+import '../features/auth/views/pages/signup_page.dart';
+import '../features/splash/bindings/splash_binding.dart';
+import '../features/splash/views/pages/splash_page.dart';
+import '../features/entities/bindings/entities_binding.dart';
+import '../features/entities/views/pages/entities_main_page.dart';
 import '../features/finance/bindings/finance_binding.dart';
-import '../features/finance/views/finance_view.dart';
-import '../features/finance/bindings/add_transaction_binding.dart';
-import '../features/finance/views/add_transaction_view.dart';
-import '../features/finance/views/pages/accounts/accounts_main.dart';
-import '../features/finance/views/pages/accounts/accounts_list.dart';
-import '../features/finance/views/pages/accounts/account_create.dart';
-import '../features/finance/views/pages/accounts/account_edit.dart';
-import '../features/finance/views/pages/accounts/account_details.dart';
-import '../features/finance/views/pages/currencies/currencies_list.dart';
-import '../features/finance/views/pages/budgets/budgets_main.dart';
-import '../features/finance/views/pages/budgets/budgets_list.dart';
-import '../features/finance/views/pages/budgets/budget_create.dart';
-import '../features/finance/views/pages/transactions/transactions_main.dart';
-import '../views/splash_view.dart';
-import '../bindings/splash_binding.dart';
+import '../features/finance/views/pages/finance_dashboard_page.dart';
 
 part 'app_routes.dart';
 
@@ -31,12 +22,17 @@ class AppPages {
   static final routes = [
     GetPage(
       name: _Paths.SPLASH,
-      page: () => const SplashView(),
+      page: () => const SplashPage(),
       binding: SplashBinding(),
     ),
     GetPage(
-      name: _Paths.AUTH,
-      page: () => const AuthView(),
+      name: _Paths.LOGIN,
+      page: () => const LoginPage(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: _Paths.SIGNUP,
+      page: () => const SignupPage(),
       binding: AuthBinding(),
     ),
     GetPage(
@@ -45,63 +41,13 @@ class AppPages {
       binding: HomeBinding(),
     ),
     GetPage(
+      name: _Paths.ENTITIES,
+      page: () => const EntitiesMainPage(),
+      binding: EntitiesBinding(),
+    ),
+    GetPage(
       name: _Paths.FINANCE,
-      page: () => const FinanceView(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_ADD_TRANSACTION,
-      page: () => const AddTransactionView(),
-      binding: AddTransactionBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_ACCOUNTS,
-      page: () => const AccountsMain(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_ACCOUNTS_LIST,
-      page: () => const AccountsList(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_ACCOUNTS_CREATE,
-      page: () => const AccountCreate(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_ACCOUNTS_EDIT,
-      page: () => const AccountEdit(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_ACCOUNTS_DETAILS,
-      page: () => const AccountDetails(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_CURRENCIES,
-      page: () => const CurrenciesList(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_BUDGETS,
-      page: () => const BudgetsMain(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_BUDGETS_LIST,
-      page: () => const BudgetsList(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_BUDGETS_CREATE,
-      page: () => const BudgetCreate(),
-      binding: FinanceBinding(),
-    ),
-    GetPage(
-      name: _Paths.FINANCE_TRANSACTIONS,
-      page: () => const TransactionsMain(),
+      page: () => const FinanceDashboardPage(),
       binding: FinanceBinding(),
     ),
   ];

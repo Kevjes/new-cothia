@@ -1,59 +1,16 @@
-import 'currency.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum TransactionType {
-  income('income', 'Entrée'),
-  expense('expense', 'Sortie'),
-  transfer('transfer', 'Transfert');
-
-  const TransactionType(this.code, this.label);
-  final String code;
-  final String label;
-
-  static TransactionType fromString(String value) {
-    return TransactionType.values.firstWhere(
-      (type) => type.code == value,
-      orElse: () => TransactionType.expense,
-    );
-  }
+  income,   // Entrée
+  expense,  // Dépense
+  transfer, // Transfert
 }
 
 enum TransactionStatus {
-  pending('pending', 'En attente', 'Transaction en cours de traitement'),
-  completed('completed', 'Terminée', 'Transaction finalisée'),
-  cancelled('cancelled', 'Annulée', 'Transaction annulée'),
-  failed('failed', 'Échouée', 'Transaction échouée');
-
-  const TransactionStatus(this.code, this.label, this.description);
-  final String code;
-  final String label;
-  final String description;
-
-  static TransactionStatus fromString(String value) {
-    return TransactionStatus.values.firstWhere(
-      (status) => status.code == value,
-      orElse: () => TransactionStatus.completed,
-    );
-  }
-}
-
-enum TransactionRecurrence {
-  none('none', 'Aucune'),
-  daily('daily', 'Quotidienne'),
-  weekly('weekly', 'Hebdomadaire'),
-  monthly('monthly', 'Mensuelle'),
-  quarterly('quarterly', 'Trimestrielle'),
-  yearly('yearly', 'Annuelle');
-
-  const TransactionRecurrence(this.code, this.label);
-  final String code;
-  final String label;
-
-  static TransactionRecurrence fromString(String value) {
-    return TransactionRecurrence.values.firstWhere(
-      (recurrence) => recurrence.code == value,
-      orElse: () => TransactionRecurrence.none,
-    );
-  }
+  planned,   // Prévue
+  pending,   // En attente
+  validated, // Validée
+  cancelled, // Annulée
 }
 
 class TransactionModel {
@@ -61,82 +18,90 @@ class TransactionModel {
   final String title;
   final String? description;
   final double amount;
-  final Currency currency;
   final TransactionType type;
   final TransactionStatus status;
-  final String accountId;
-  final String? toAccountId; // Pour les transferts
-  final String? categoryId;
-  final String? budgetId;
-  final DateTime date; // Date et heure de la transaction
-  final TransactionRecurrence recurrence;
-  final DateTime? scheduledDate; // Pour les transactions programmées
-  final String? receiptUrl; // URL du reçu/justificatif
-  final List<String> tags; // Tags pour organisation
-  final double? latitude; // Géolocalisation
-  final double? longitude;
-  final String? location; // Nom du lieu
+  final String entityId;
+  final String? sourceAccountId;      // Pour dépenses et transferts
+  final String? destinationAccountId; // Pour entrées et transferts
+  final String? categoryId;           // Catégorie optionnelle
+  final String? budgetId;            // Budget lié optionnel
+  final String? projectId;           // Projet lié optionnel
+  final DateTime transactionDate;
+  final DateTime? scheduledDate;     // Pour transactions planifiées
+  final bool isRecurring;
+  final String? recurringRule;       // Règle de récurrence
+  final List<String> tags;
+  final Map<String, dynamic>? metadata; // Données supplémentaires
   final DateTime createdAt;
   final DateTime updatedAt;
-  final String userId;
-  final Map<String, dynamic>? metadata;
 
   TransactionModel({
     required this.id,
     required this.title,
     this.description,
     required this.amount,
-    required this.currency,
     required this.type,
-    this.status = TransactionStatus.completed,
-    required this.accountId,
-    this.toAccountId,
+    required this.status,
+    required this.entityId,
+    this.sourceAccountId,
+    this.destinationAccountId,
     this.categoryId,
     this.budgetId,
-    required this.date,
-    this.recurrence = TransactionRecurrence.none,
+    this.projectId,
+    required this.transactionDate,
     this.scheduledDate,
-    this.receiptUrl,
+    this.isRecurring = false,
+    this.recurringRule,
     this.tags = const [],
-    this.latitude,
-    this.longitude,
-    this.location,
+    this.metadata,
     required this.createdAt,
     required this.updatedAt,
-    required this.userId,
-    this.metadata,
   });
 
-  factory TransactionModel.fromJson(Map<String, dynamic> json) {
-    return TransactionModel(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      description: json['description'],
-      amount: (json['amount'] ?? 0.0).toDouble(),
-      currency: Currency.fromString(json['currency'] ?? 'FCFA'),
-      type: TransactionType.fromString(json['type'] ?? 'expense'),
-      status: TransactionStatus.fromString(json['status'] ?? 'completed'),
-      accountId: json['accountId'] ?? '',
-      toAccountId: json['toAccountId'],
-      categoryId: json['categoryId'],
-      budgetId: json['budgetId'],
-      date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
-      recurrence: TransactionRecurrence.fromString(json['recurrence'] ?? 'none'),
-      scheduledDate: json['scheduledDate'] != null
-          ? DateTime.parse(json['scheduledDate'])
-          : null,
-      receiptUrl: json['receiptUrl'],
-      tags: json['tags'] != null
-          ? List<String>.from(json['tags'])
-          : [],
-      latitude: json['latitude']?.toDouble(),
-      longitude: json['longitude']?.toDouble(),
-      location: json['location'],
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
-      userId: json['userId'] ?? '',
-      metadata: json['metadata'],
-    );
+  // Getters utiles
+  bool get isIncome => type == TransactionType.income;
+  bool get isExpense => type == TransactionType.expense;
+  bool get isTransfer => type == TransactionType.transfer;
+
+  bool get isPlanned => status == TransactionStatus.planned;
+  bool get isPending => status == TransactionStatus.pending;
+  bool get isValidated => status == TransactionStatus.validated;
+  bool get isCancelled => status == TransactionStatus.cancelled;
+
+  String get typeDisplayName {
+    switch (type) {
+      case TransactionType.income:
+        return 'Entrée';
+      case TransactionType.expense:
+        return 'Dépense';
+      case TransactionType.transfer:
+        return 'Transfert';
+    }
+  }
+
+  String get statusDisplayName {
+    switch (status) {
+      case TransactionStatus.planned:
+        return 'Prévue';
+      case TransactionStatus.pending:
+        return 'En attente';
+      case TransactionStatus.validated:
+        return 'Validée';
+      case TransactionStatus.cancelled:
+        return 'Annulée';
+    }
+  }
+
+  // Validation des règles métier
+  bool get isValid {
+    switch (type) {
+      case TransactionType.income:
+        return destinationAccountId != null;
+      case TransactionType.expense:
+        return sourceAccountId != null;
+      case TransactionType.transfer:
+        return sourceAccountId != null && destinationAccountId != null;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -145,25 +110,117 @@ class TransactionModel {
       'title': title,
       'description': description,
       'amount': amount,
-      'currency': currency.code,
-      'type': type.code,
-      'status': status.code,
-      'accountId': accountId,
-      'toAccountId': toAccountId,
+      'type': type.name,
+      'status': status.name,
+      'entityId': entityId,
+      'sourceAccountId': sourceAccountId,
+      'destinationAccountId': destinationAccountId,
       'categoryId': categoryId,
       'budgetId': budgetId,
-      'date': date.toIso8601String(),
-      'recurrence': recurrence.code,
+      'projectId': projectId,
+      'transactionDate': transactionDate.toIso8601String(),
       'scheduledDate': scheduledDate?.toIso8601String(),
-      'receiptUrl': receiptUrl,
+      'isRecurring': isRecurring,
+      'recurringRule': recurringRule,
       'tags': tags,
-      'latitude': latitude,
-      'longitude': longitude,
-      'location': location,
+      'metadata': metadata,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'userId': userId,
+    };
+  }
+
+  factory TransactionModel.fromJson(Map<String, dynamic> json) {
+    return TransactionModel(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      description: json['description'],
+      amount: (json['amount'] ?? 0.0).toDouble(),
+      type: TransactionType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => TransactionType.expense,
+      ),
+      status: TransactionStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => TransactionStatus.pending,
+      ),
+      entityId: json['entityId'] ?? '',
+      sourceAccountId: json['sourceAccountId'],
+      destinationAccountId: json['destinationAccountId'],
+      categoryId: json['categoryId'],
+      budgetId: json['budgetId'],
+      projectId: json['projectId'],
+      transactionDate: json['transactionDate'] != null
+          ? DateTime.parse(json['transactionDate'])
+          : DateTime.now(),
+      scheduledDate: json['scheduledDate'] != null
+          ? DateTime.parse(json['scheduledDate'])
+          : null,
+      isRecurring: json['isRecurring'] ?? false,
+      recurringRule: json['recurringRule'],
+      tags: List<String>.from(json['tags'] ?? []),
+      metadata: json['metadata'],
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : DateTime.now(),
+    );
+  }
+
+  factory TransactionModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return TransactionModel(
+      id: doc.id,
+      title: data['title'] ?? '',
+      description: data['description'],
+      amount: (data['amount'] ?? 0.0).toDouble(),
+      type: TransactionType.values.firstWhere(
+        (e) => e.name == data['type'],
+        orElse: () => TransactionType.expense,
+      ),
+      status: TransactionStatus.values.firstWhere(
+        (e) => e.name == data['status'],
+        orElse: () => TransactionStatus.pending,
+      ),
+      entityId: data['entityId'] ?? '',
+      sourceAccountId: data['sourceAccountId'],
+      destinationAccountId: data['destinationAccountId'],
+      categoryId: data['categoryId'],
+      budgetId: data['budgetId'],
+      projectId: data['projectId'],
+      transactionDate: (data['transactionDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      scheduledDate: (data['scheduledDate'] as Timestamp?)?.toDate(),
+      isRecurring: data['isRecurring'] ?? false,
+      recurringRule: data['recurringRule'],
+      tags: List<String>.from(data['tags'] ?? []),
+      metadata: data['metadata'],
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'title': title,
+      'description': description,
+      'amount': amount,
+      'type': type.name,
+      'status': status.name,
+      'entityId': entityId,
+      'sourceAccountId': sourceAccountId,
+      'destinationAccountId': destinationAccountId,
+      'categoryId': categoryId,
+      'budgetId': budgetId,
+      'projectId': projectId,
+      'transactionDate': Timestamp.fromDate(transactionDate),
+      'scheduledDate': scheduledDate != null ? Timestamp.fromDate(scheduledDate!) : null,
+      'isRecurring': isRecurring,
+      'recurringRule': recurringRule,
+      'tags': tags,
       'metadata': metadata,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
 
@@ -172,107 +229,58 @@ class TransactionModel {
     String? title,
     String? description,
     double? amount,
-    Currency? currency,
     TransactionType? type,
     TransactionStatus? status,
-    String? accountId,
-    String? toAccountId,
+    String? entityId,
+    String? sourceAccountId,
+    String? destinationAccountId,
     String? categoryId,
     String? budgetId,
-    DateTime? date,
-    TransactionRecurrence? recurrence,
+    String? projectId,
+    DateTime? transactionDate,
     DateTime? scheduledDate,
-    String? receiptUrl,
+    bool? isRecurring,
+    String? recurringRule,
     List<String>? tags,
-    double? latitude,
-    double? longitude,
-    String? location,
+    Map<String, dynamic>? metadata,
     DateTime? createdAt,
     DateTime? updatedAt,
-    String? userId,
-    Map<String, dynamic>? metadata,
   }) {
     return TransactionModel(
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
       amount: amount ?? this.amount,
-      currency: currency ?? this.currency,
       type: type ?? this.type,
       status: status ?? this.status,
-      accountId: accountId ?? this.accountId,
-      toAccountId: toAccountId ?? this.toAccountId,
+      entityId: entityId ?? this.entityId,
+      sourceAccountId: sourceAccountId ?? this.sourceAccountId,
+      destinationAccountId: destinationAccountId ?? this.destinationAccountId,
       categoryId: categoryId ?? this.categoryId,
       budgetId: budgetId ?? this.budgetId,
-      date: date ?? this.date,
-      recurrence: recurrence ?? this.recurrence,
+      projectId: projectId ?? this.projectId,
+      transactionDate: transactionDate ?? this.transactionDate,
       scheduledDate: scheduledDate ?? this.scheduledDate,
-      receiptUrl: receiptUrl ?? this.receiptUrl,
+      isRecurring: isRecurring ?? this.isRecurring,
+      recurringRule: recurringRule ?? this.recurringRule,
       tags: tags ?? this.tags,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      location: location ?? this.location,
+      metadata: metadata ?? this.metadata,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      userId: userId ?? this.userId,
-      metadata: metadata ?? this.metadata,
     );
-  }
-
-  String get formattedAmount => currency.formatAmount(amount);
-
-  String get displayAmount {
-    switch (type) {
-      case TransactionType.income:
-        return '+${formattedAmount}';
-      case TransactionType.expense:
-        return '-${formattedAmount}';
-      case TransactionType.transfer:
-        return formattedAmount;
-    }
-  }
-
-  bool get isPending => status == TransactionStatus.pending;
-  bool get isCompleted => status == TransactionStatus.completed;
-  bool get isFailed => status == TransactionStatus.failed;
-  bool get isCancelled => status == TransactionStatus.cancelled;
-
-  bool get isRecurring => recurrence != TransactionRecurrence.none;
-  bool get isScheduled => scheduledDate != null;
-  bool get hasReceipt => receiptUrl != null && receiptUrl!.isNotEmpty;
-  bool get hasLocation => latitude != null && longitude != null;
-  bool get isLinkedToBudget => budgetId != null && budgetId!.isNotEmpty;
-
-  String get statusDisplay {
-    switch (status) {
-      case TransactionStatus.pending:
-        return '⏳ ${status.label}';
-      case TransactionStatus.completed:
-        return '✅ ${status.label}';
-      case TransactionStatus.cancelled:
-        return '❌ ${status.label}';
-      case TransactionStatus.failed:
-        return '⚠️ ${status.label}';
-    }
-  }
-
-  String get timeAgo {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays > 0) {
-      return 'Il y a ${difference.inDays} jour${difference.inDays > 1 ? 's' : ''}';
-    } else if (difference.inHours > 0) {
-      return 'Il y a ${difference.inHours} heure${difference.inHours > 1 ? 's' : ''}';
-    } else if (difference.inMinutes > 0) {
-      return 'Il y a ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''}';
-    } else {
-      return 'À l\'instant';
-    }
   }
 
   @override
   String toString() {
-    return 'TransactionModel(id: $id, title: $title, amount: $displayAmount, type: ${type.label}, status: ${status.label})';
+    return 'TransactionModel(id: $id, title: $title, amount: $amount, type: $type, status: $status)';
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TransactionModel && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }

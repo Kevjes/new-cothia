@@ -1,31 +1,42 @@
 class AppConstants {
+  AppConstants._();
+
+  // App Info
   static const String appName = 'Cothia';
   static const String appVersion = '1.0.0';
 
-  // Routes
-  static const String initialRoute = '/';
-  static const String authRoute = '/auth';
-  static const String homeRoute = '/home';
-  static const String profileRoute = '/profile';
-  static const String habitsRoute = '/habits';
-  static const String tasksRoute = '/tasks';
-  static const String financeRoute = '/finance';
-  static const String projectsRoute = '/projects';
+  // SharedPreferences Keys
+  static const String keyIsFirstTime = 'is_first_time';
+  static const String keyIsLoggedIn = 'is_logged_in';
+  static const String keyUserId = 'user_id';
+  static const String keyUserEmail = 'user_email';
+  static const String keyPersonalEntityId = 'personal_entity_id';
 
-  // SharedPreferences keys
-  static const String themeKey = 'theme_mode';
-  static const String isFirstLaunchKey = 'is_first_launch';
-  static const String userTokenKey = 'user_token';
-  static const String userIdKey = 'user_id';
-
-  // Firebase collections
+  // Firestore Collections
   static const String usersCollection = 'users';
+  static const String entitiesCollection = 'entities';
+  static const String projectsCollection = 'projects';
+  static const String transactionsCollection = 'transactions';
+  static const String budgetsCollection = 'budgets';
+  static const String accountsCollection = 'accounts';
   static const String habitsCollection = 'habits';
   static const String tasksCollection = 'tasks';
-  static const String financeCollection = 'finance';
-  static const String projectsCollection = 'projects';
 
-  // Animation durations
-  static const Duration animationDuration = Duration(milliseconds: 300);
-  static const Duration pageTransitionDuration = Duration(milliseconds: 250);
+  // Entity Types
+  static const String entityTypePersonal = 'personal';
+  static const String entityTypeOrganization = 'organization';
+
+  // Validation
+  static const int minPasswordLength = 6;
+  static const int maxNameLength = 50;
+  static const int maxDescriptionLength = 500;
+
+  // Default Values
+  static const String defaultPersonalEntityName = 'Personnel';
+  static const String defaultCurrency = 'EUR';
+
+  // Error Messages
+  static const String genericErrorMessage = 'Une erreur s\'est produite. Veuillez réessayer.';
+  static const String networkErrorMessage = 'Vérifiez votre connexion internet.';
+  static const String authErrorMessage = 'Erreur d\'authentification.';
 }

@@ -1,128 +1,198 @@
-import 'currency.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+enum AccountType {
+  checking, // Compte courant
+  savings,  // Épargne
+  cash,     // Espèces
+  credit,   // Crédit
+  virtual,  // Compte virtuel
+}
 
 class AccountModel {
   final String id;
   final String name;
-  final String description;
-  final double balance;
-  final Currency currency;
-  final String? color;
-  final String? icon;
+  final AccountType type;
+  final String entityId; // Lié à une entité
+  final double initialBalance;
+  final double currentBalance;
+  final double projectedBalance; // Avec transactions en attente
+  final String currency;
+  final String? description;
+  final String? bankName;
+  final String? accountNumber;
+  final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final String userId;
-  final bool isActive;
 
   AccountModel({
     required this.id,
     required this.name,
-    required this.description,
-    required this.balance,
-    required this.currency,
-    this.color,
-    this.icon,
+    required this.type,
+    required this.entityId,
+    required this.initialBalance,
+    required this.currentBalance,
+    required this.projectedBalance,
+    this.currency = 'EUR',
+    this.description,
+    this.bankName,
+    this.accountNumber,
+    this.isActive = true,
     required this.createdAt,
     required this.updatedAt,
-    required this.userId,
-    this.isActive = true,
   });
 
-  factory AccountModel.fromJson(Map<String, dynamic> json) {
-    return AccountModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
-      balance: (json['balance'] ?? 0.0).toDouble(),
-      currency: Currency.fromString(json['currency'] ?? 'FCFA'),
-      color: json['color'],
-      icon: json['icon'],
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
-      userId: json['userId'] ?? '',
-      isActive: json['isActive'] ?? true,
-    );
-  }
+  // Getters utiles
+  bool get isBankAccount => type == AccountType.checking || type == AccountType.savings;
+  bool get isCash => type == AccountType.cash;
+  bool get isVirtual => type == AccountType.virtual;
+  bool get isCredit => type == AccountType.credit;
 
-  factory AccountModel.fromMap(Map<String, dynamic> map, String id) {
-    return AccountModel(
-      id: id,
-      name: map['name'] ?? '',
-      description: map['description'] ?? '',
-      balance: (map['balance'] ?? 0.0).toDouble(),
-      currency: map['currency'] is Map ? Currency.fromMap(map['currency']) : Currency.fromString(map['currency'] ?? 'FCFA'),
-      color: map['color'],
-      icon: map['icon'],
-      createdAt: map['createdAt'] != null ? (map['createdAt'].toDate() ?? DateTime.now()) : DateTime.now(),
-      updatedAt: map['updatedAt'] != null ? (map['updatedAt'].toDate() ?? DateTime.now()) : DateTime.now(),
-      userId: map['userId'] ?? '',
-      isActive: map['isActive'] ?? true,
-    );
+  String get typeDisplayName {
+    switch (type) {
+      case AccountType.checking:
+        return 'Compte courant';
+      case AccountType.savings:
+        return 'Épargne';
+      case AccountType.cash:
+        return 'Espèces';
+      case AccountType.credit:
+        return 'Crédit';
+      case AccountType.virtual:
+        return 'Compte virtuel';
+    }
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
+      'type': type.name,
+      'entityId': entityId,
+      'initialBalance': initialBalance,
+      'currentBalance': currentBalance,
+      'projectedBalance': projectedBalance,
+      'currency': currency,
       'description': description,
-      'balance': balance,
-      'currency': currency.code,
-      'color': color,
-      'icon': icon,
+      'bankName': bankName,
+      'accountNumber': accountNumber,
+      'isActive': isActive,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'userId': userId,
-      'isActive': isActive,
     };
   }
 
-  Map<String, dynamic> toMap() {
+  factory AccountModel.fromJson(Map<String, dynamic> json) {
+    return AccountModel(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      type: AccountType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => AccountType.checking,
+      ),
+      entityId: json['entityId'] ?? '',
+      initialBalance: (json['initialBalance'] ?? 0.0).toDouble(),
+      currentBalance: (json['currentBalance'] ?? 0.0).toDouble(),
+      projectedBalance: (json['projectedBalance'] ?? 0.0).toDouble(),
+      currency: json['currency'] ?? 'EUR',
+      description: json['description'],
+      bankName: json['bankName'],
+      accountNumber: json['accountNumber'],
+      isActive: json['isActive'] ?? true,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : DateTime.now(),
+    );
+  }
+
+  factory AccountModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return AccountModel(
+      id: doc.id,
+      name: data['name'] ?? '',
+      type: AccountType.values.firstWhere(
+        (e) => e.name == data['type'],
+        orElse: () => AccountType.checking,
+      ),
+      entityId: data['entityId'] ?? '',
+      initialBalance: (data['initialBalance'] ?? 0.0).toDouble(),
+      currentBalance: (data['currentBalance'] ?? 0.0).toDouble(),
+      projectedBalance: (data['projectedBalance'] ?? 0.0).toDouble(),
+      currency: data['currency'] ?? 'EUR',
+      description: data['description'],
+      bankName: data['bankName'],
+      accountNumber: data['accountNumber'],
+      isActive: data['isActive'] ?? true,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
     return {
       'name': name,
+      'type': type.name,
+      'entityId': entityId,
+      'initialBalance': initialBalance,
+      'currentBalance': currentBalance,
+      'projectedBalance': projectedBalance,
+      'currency': currency,
       'description': description,
-      'balance': balance,
-      'currency': currency.toMap(),
-      'color': color,
-      'icon': icon,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
-      'userId': userId,
+      'bankName': bankName,
+      'accountNumber': accountNumber,
       'isActive': isActive,
-      'isDefault': false,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
 
   AccountModel copyWith({
     String? id,
     String? name,
+    AccountType? type,
+    String? entityId,
+    double? initialBalance,
+    double? currentBalance,
+    double? projectedBalance,
+    String? currency,
     String? description,
-    double? balance,
-    Currency? currency,
-    String? color,
-    String? icon,
+    String? bankName,
+    String? accountNumber,
+    bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
-    String? userId,
-    bool? isActive,
   }) {
     return AccountModel(
       id: id ?? this.id,
       name: name ?? this.name,
-      description: description ?? this.description,
-      balance: balance ?? this.balance,
+      type: type ?? this.type,
+      entityId: entityId ?? this.entityId,
+      initialBalance: initialBalance ?? this.initialBalance,
+      currentBalance: currentBalance ?? this.currentBalance,
+      projectedBalance: projectedBalance ?? this.projectedBalance,
       currency: currency ?? this.currency,
-      color: color ?? this.color,
-      icon: icon ?? this.icon,
+      description: description ?? this.description,
+      bankName: bankName ?? this.bankName,
+      accountNumber: accountNumber ?? this.accountNumber,
+      isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      userId: userId ?? this.userId,
-      isActive: isActive ?? this.isActive,
     );
   }
 
-  String get formattedBalance => currency.formatAmount(balance);
-
   @override
   String toString() {
-    return 'AccountModel(id: $id, name: $name, balance: $formattedBalance)';
+    return 'AccountModel(id: $id, name: $name, type: $type, currentBalance: $currentBalance $currency)';
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is AccountModel && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }

@@ -1,127 +1,241 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/services/auth_service.dart';
+import '../../../data/models/user_model.dart';
 import '../../../routes/app_pages.dart';
 
 class AuthController extends GetxController {
-  static AuthController get to => Get.put(AuthController());
+  final AuthService _authService = AuthService();
 
-  final AuthService _authService = AuthService.to;
+  // Observables
+  final _isLoading = false.obs;
+  final _currentUser = Rxn<UserModel>();
+  final _isAuthenticated = false.obs;
 
-  // Form keys
-  final signInFormKey = GlobalKey<FormState>();
-  final signUpFormKey = GlobalKey<FormState>();
-  final forgotPasswordFormKey = GlobalKey<FormState>();
-
-  // Text controllers
+  // Form controllers
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  final displayNameController = TextEditingController();
-  final resetEmailController = TextEditingController();
+  final nameController = TextEditingController();
 
-  // Observable variables
-  final _isPasswordVisible = false.obs;
-  final _isConfirmPasswordVisible = false.obs;
-  final _currentAuthMode = AuthMode.signIn.obs;
+  // Form keys
+  final loginFormKey = GlobalKey<FormState>();
+  final signupFormKey = GlobalKey<FormState>();
 
   // Getters
-  bool get isPasswordVisible => _isPasswordVisible.value;
-  bool get isConfirmPasswordVisible => _isConfirmPasswordVisible.value;
-  AuthMode get currentAuthMode => _currentAuthMode.value;
-  bool get isLoading => _authService.isLoading;
+  bool get isLoading => _isLoading.value;
+  UserModel? get currentUser => _currentUser.value;
+  bool get isAuthenticated => _isAuthenticated.value;
+
+  // L'AuthController ne vérifie plus automatiquement l'authentification
+  // Ceci est maintenant géré par le SplashController
 
   @override
   void onClose() {
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
-    displayNameController.dispose();
-    resetEmailController.dispose();
+    nameController.dispose();
     super.onClose();
   }
 
-  void togglePasswordVisibility() {
-    _isPasswordVisible.value = !_isPasswordVisible.value;
+  // Initialize user data (called from SplashController)
+  Future<void> initializeUserData() async {
+    try {
+      final userData = await _authService.getCurrentUserData();
+      _currentUser.value = userData;
+      _isAuthenticated.value = true;
+    } catch (e) {
+      _isAuthenticated.value = false;
+      _currentUser.value = null;
+    }
   }
 
-  void toggleConfirmPasswordVisibility() {
-    _isConfirmPasswordVisible.value = !_isConfirmPasswordVisible.value;
+  // Cette méthode n'est plus utilisée - gérée par SplashController
+
+  // Sign in with email and password
+  Future<void> signIn() async {
+    if (!loginFormKey.currentState!.validate()) return;
+
+    try {
+      _isLoading.value = true;
+
+      final userCredential = await _authService.signInWithEmailPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      if (userCredential != null) {
+        final userData = await _authService.getCurrentUserData();
+        _currentUser.value = userData;
+        _isAuthenticated.value = true;
+
+        Get.snackbar(
+          'Succès',
+          'Connexion réussie',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+
+        // Clear form and navigate to home
+        _clearForm();
+        Get.offAllNamed(Routes.HOME);
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      _isLoading.value = false;
+    }
   }
 
-  void setAuthMode(AuthMode mode) {
-    _currentAuthMode.value = mode;
-    _clearForm();
+  // Sign up with email and password
+  Future<void> signUp() async {
+    if (!signupFormKey.currentState!.validate()) return;
+
+    try {
+      _isLoading.value = true;
+
+      final userCredential = await _authService.signUpWithEmailPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      if (userCredential != null) {
+        // Update display name if provided
+        if (nameController.text.trim().isNotEmpty) {
+          await _authService.updateUserProfile(
+            displayName: nameController.text.trim(),
+          );
+        }
+
+        final userData = await _authService.getCurrentUserData();
+        _currentUser.value = userData;
+        _isAuthenticated.value = true;
+
+        Get.snackbar(
+          'Succès',
+          'Compte créé avec succès',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+
+        // Clear form and navigate to home
+        _clearForm();
+        Get.offAllNamed(Routes.HOME);
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      _isLoading.value = false;
+    }
   }
 
+  // Sign out
+  Future<void> signOut() async {
+    try {
+      _isLoading.value = true;
+
+      await _authService.signOut();
+      _currentUser.value = null;
+      _isAuthenticated.value = false;
+
+      Get.snackbar(
+        'Succès',
+        'Déconnexion réussie',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      // Navigate to login
+      Get.offAllNamed(Routes.LOGIN);
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
+  // Reset password
+  Future<void> resetPassword(String email) async {
+    if (email.isEmpty) {
+      Get.snackbar(
+        'Erreur',
+        'Veuillez entrer votre adresse email',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    try {
+      _isLoading.value = true;
+
+      await _authService.resetPassword(email);
+
+      Get.snackbar(
+        'Succès',
+        'Un email de réinitialisation a été envoyé',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
+  // Clear form fields
   void _clearForm() {
     emailController.clear();
     passwordController.clear();
     confirmPasswordController.clear();
-    displayNameController.clear();
-  }
-
-  Future<void> signIn() async {
-    if (!signInFormKey.currentState!.validate()) return;
-
-    final success = await _authService.signIn(
-      email: emailController.text.trim(),
-      password: passwordController.text,
-    );
-
-    if (success) {
-      Get.offAllNamed(Routes.HOME);
-    }
-  }
-
-  Future<void> signUp() async {
-    if (!signUpFormKey.currentState!.validate()) return;
-
-    final success = await _authService.signUp(
-      email: emailController.text.trim(),
-      password: passwordController.text,
-      displayName: displayNameController.text.trim().isEmpty
-          ? null
-          : displayNameController.text.trim(),
-    );
-
-    if (success) {
-      Get.offAllNamed(Routes.HOME);
-    }
-  }
-
-  Future<void> resetPassword() async {
-    if (!forgotPasswordFormKey.currentState!.validate()) return;
-
-    final success = await _authService.resetPassword(
-      email: resetEmailController.text.trim(),
-    );
-
-    if (success) {
-      resetEmailController.clear();
-      setAuthMode(AuthMode.signIn);
-    }
-  }
-
-  Future<void> signOut() async {
-    await _authService.signOut();
-    Get.offAllNamed(Routes.AUTH);
+    nameController.clear();
   }
 
   // Validators
   String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Veuillez saisir un email';
+      return 'L\'adresse email est requise';
     }
     if (!GetUtils.isEmail(value)) {
-      return 'Veuillez saisir un email valide';
+      return 'Adresse email invalide';
     }
     return null;
   }
 
   String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Veuillez saisir un mot de passe';
+      return 'Le mot de passe est requis';
     }
     if (value.length < 6) {
       return 'Le mot de passe doit contenir au moins 6 caractères';
@@ -131,7 +245,7 @@ class AuthController extends GetxController {
 
   String? validateConfirmPassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Veuillez confirmer le mot de passe';
+      return 'La confirmation du mot de passe est requise';
     }
     if (value != passwordController.text) {
       return 'Les mots de passe ne correspondent pas';
@@ -139,16 +253,13 @@ class AuthController extends GetxController {
     return null;
   }
 
-  String? validateDisplayName(String? value) {
-    if (value != null && value.isNotEmpty && value.length < 2) {
+  String? validateName(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Le nom est requis';
+    }
+    if (value.length < 2) {
       return 'Le nom doit contenir au moins 2 caractères';
     }
     return null;
   }
-}
-
-enum AuthMode {
-  signIn,
-  signUp,
-  forgotPassword,
 }

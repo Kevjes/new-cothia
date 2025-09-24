@@ -42,50 +42,39 @@ class CategoryService {
   }
 
   // Créer une nouvelle catégorie
-  Future<CategoryModel> createCategory(CategoryModel category) async {
+  Future<String> createCategory(CategoryModel category) async {
     try {
       final docRef = await _firestore
           .collection('categories')
           .add(category.toFirestore());
 
-      return category.copyWith(id: docRef.id);
+      return docRef.id;
     } catch (e) {
       throw Exception('Erreur lors de la création de la catégorie: ${e.toString()}');
     }
   }
 
   // Mettre à jour une catégorie
-  Future<CategoryModel> updateCategory(CategoryModel category) async {
+  Future<void> updateCategory(String categoryId, CategoryModel category) async {
     try {
       final updatedCategory = category.copyWith(updatedAt: DateTime.now());
 
       await _firestore
           .collection('categories')
-          .doc(category.id)
+          .doc(categoryId)
           .update(updatedCategory.toFirestore());
-
-      return updatedCategory;
     } catch (e) {
       throw Exception('Erreur lors de la mise à jour de la catégorie: ${e.toString()}');
     }
   }
 
-  // Supprimer une catégorie (soft delete)
+  // Supprimer une catégorie (hard delete)
   Future<void> deleteCategory(String categoryId) async {
     try {
-      // Vérifier si la catégorie a des sous-catégories
-      final subCategories = await getSubCategories(categoryId);
-      if (subCategories.isNotEmpty) {
-        throw Exception('Impossible de supprimer une catégorie qui a des sous-catégories');
-      }
-
       await _firestore
           .collection('categories')
           .doc(categoryId)
-          .update({
-        'isActive': false,
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
-      });
+          .delete();
     } catch (e) {
       throw Exception('Erreur lors de la suppression de la catégorie: ${e.toString()}');
     }
@@ -171,8 +160,8 @@ class CategoryService {
           entityId: entityId,
           id: '', // Sera généré par Firestore
         );
-        final created = await createCategory(category);
-        createdCategories.add(created);
+        final createdId = await createCategory(category);
+        createdCategories.add(category.copyWith(id: createdId));
       }
 
       // Créer les catégories de revenus par défaut
@@ -181,8 +170,8 @@ class CategoryService {
           entityId: entityId,
           id: '', // Sera généré par Firestore
         );
-        final created = await createCategory(category);
-        createdCategories.add(created);
+        final createdId = await createCategory(category);
+        createdCategories.add(category.copyWith(id: createdId));
       }
 
       return createdCategories;
@@ -292,6 +281,21 @@ class CategoryService {
       }).toList();
     } catch (e) {
       throw Exception('Erreur lors de la recherche de catégories: ${e.toString()}');
+    }
+  }
+
+  // Vérifier si une catégorie est utilisée dans des transactions
+  Future<bool> isCategoryUsed(String categoryId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('transactions')
+          .where('categoryId', isEqualTo: categoryId)
+          .limit(1)
+          .get();
+
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      throw Exception('Erreur lors de la vérification d\'usage: $e');
     }
   }
 }

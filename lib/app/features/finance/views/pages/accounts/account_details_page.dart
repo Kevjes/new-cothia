@@ -1,9 +1,15 @@
+import 'package:cothia_app/app/core/utils/get_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../controllers/accounts_controller.dart';
+import '../../../controllers/transactions_controller.dart';
 import '../../../controllers/finance_controller.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../models/account_model.dart';
+import '../../../models/transaction_model.dart';
 import 'account_create_page.dart';
+import '../transactions/transaction_create_page.dart';
+import '../transactions/transactions_list_page.dart';
 
 class AccountDetailsPage extends StatelessWidget {
   final AccountModel account;
@@ -288,7 +294,7 @@ class AccountDetailsPage extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'À implémenter',
+                      'Évolution du solde au fil du temps',
                       style: Get.textTheme.bodySmall?.copyWith(
                         color: AppColors.hint,
                       ),
@@ -514,30 +520,30 @@ class AccountDetailsPage extends StatelessWidget {
   }
 
   void _addTransaction({bool? isIncome}) {
-    Get.snackbar(
-      'Info',
-      'Ajouter transaction${isIncome != null ? (isIncome ? ' (revenu)' : ' (dépense)') : ''} - À implémenter',
-    );
+    Get.to(() => const TransactionCreatePage());
   }
 
   void _transferMoney() {
-    Get.snackbar('Info', 'Transfert d\'argent - À implémenter');
+    _showTransferDialog();
   }
 
   void _adjustBalance() {
-    Get.snackbar('Info', 'Ajustement de solde - À implémenter');
+    _showAdjustBalanceDialog();
   }
 
   void _viewFullHistory() {
-    Get.snackbar('Info', 'Historique complet - À implémenter');
+    _showAccountHistory();
   }
 
   void _viewAllTransactions() {
-    Get.snackbar('Info', 'Toutes les transactions - À implémenter');
+    final transactionsController = Get.put(TransactionsController());
+    transactionsController.setAccountFilter(account);
+    Get.to(() => const TransactionsListPage());
   }
 
   void _duplicateAccount() {
-    Get.snackbar('Info', 'Dupliquer le compte - À implémenter');
+    final accountsController = Get.find<AccountsController>();
+    accountsController.duplicateAccount(account);
   }
 
   void _showDeleteDialog() {
@@ -568,29 +574,257 @@ class AccountDetailsPage extends StatelessWidget {
 
   Future<void> _deleteAccount() async {
     Get.back(); // Fermer le dialog
-
-    try {
-      final controller = Get.find<FinanceController>();
-      await controller.deleteAccount(account.id);
-
-      Get.snackbar(
-        'Succès',
-        'Compte supprimé avec succès',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppColors.success,
-        colorText: Colors.white,
-      );
-
-      Get.back(); // Retour à la page précédente
-
-    } catch (e) {
-      Get.snackbar(
-        'Erreur',
-        'Impossible de supprimer le compte: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppColors.error,
-        colorText: Colors.white,
-      );
+    final accountsController = Get.find<AccountsController>();
+    final success = await accountsController.deleteAccount(account.id);
+    if (success) {
+      Get.safeBack();
     }
+  }
+
+  void _showTransferDialog() {
+    final accountsController = Get.find<AccountsController>();
+    final amountController = TextEditingController();
+    final descriptionController = TextEditingController();
+    AccountModel? selectedDestination;
+
+    final availableAccounts = accountsController.accounts
+        .where((a) => a.id != account.id && a.isActive)
+        .toList();
+
+    if (availableAccounts.isEmpty) {
+      Get.snackbar(
+        'Info',
+        'Aucun autre compte disponible pour le transfert',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Transfert d\'argent'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Depuis: ${account.name}'),
+              Text('Solde: ${account.currentBalance.toStringAsFixed(0)} FCFA'),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<AccountModel>(
+                decoration: const InputDecoration(
+                  labelText: 'Vers le compte',
+                ),
+                items: availableAccounts.map((acc) {
+                  return DropdownMenuItem<AccountModel>(
+                    value: acc,
+                    child: Text(acc.name),
+                  );
+                }).toList(),
+                onChanged: (value) => selectedDestination = value,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: amountController,
+                decoration: const InputDecoration(
+                  labelText: 'Montant',
+                  suffixText: 'FCFA',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optionnelle)',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (selectedDestination != null && amountController.text.isNotEmpty) {
+                final amount = double.tryParse(amountController.text);
+                if (amount != null && amount > 0) {
+                  Get.back();
+                  accountsController.transferMoney(
+                    account.id,
+                    selectedDestination!.id,
+                    amount,
+                    descriptionController.text,
+                  );
+                }
+              }
+            },
+            child: const Text('Transférer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAdjustBalanceDialog() {
+    final accountsController = Get.find<AccountsController>();
+    final balanceController = TextEditingController(
+      text: account.currentBalance.toStringAsFixed(0),
+    );
+    final reasonController = TextEditingController();
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Ajuster le solde'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Solde actuel: ${account.currentBalance.toStringAsFixed(0)} FCFA'),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: balanceController,
+              decoration: const InputDecoration(
+                labelText: 'Nouveau solde',
+                suffixText: 'FCFA',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Raison de l\'ajustement',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newBalance = double.tryParse(balanceController.text);
+              if (newBalance != null && reasonController.text.isNotEmpty) {
+                Get.back();
+                accountsController.adjustBalance(
+                  account.id,
+                  newBalance,
+                  reasonController.text,
+                );
+              }
+            },
+            child: const Text('Ajuster'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAccountHistory() {
+    Get.dialog(
+      Dialog(
+        backgroundColor: AppColors.surface,
+        child: Container(
+          width: Get.width * 0.9,
+          height: Get.height * 0.8,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Historique - ${account.name}',
+                    style: Get.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Get.back(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: Get.find<AccountsController>().getAccountHistory(account.id),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text('Erreur: ${snapshot.error}'),
+                      );
+                    }
+
+                    final history = snapshot.data ?? [];
+
+                    if (history.isEmpty) {
+                      return const Center(
+                        child: Text('Aucun historique disponible'),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: history.length,
+                      itemBuilder: (context, index) {
+                        final item = history[index];
+                        final transaction = item['transaction'] as TransactionModel;
+                        final balanceAfter = item['balanceAfter'] as double;
+                        final amount = item['amount'] as double;
+
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: amount >= 0
+                                ? AppColors.success.withOpacity(0.1)
+                                : AppColors.error.withOpacity(0.1),
+                            child: Icon(
+                              amount >= 0 ? Icons.add : Icons.remove,
+                              color: amount >= 0 ? AppColors.success : AppColors.error,
+                            ),
+                          ),
+                          title: Text(transaction.title),
+                          subtitle: Text(
+                            '${transaction.transactionDate.day}/${transaction.transactionDate.month}/${transaction.transactionDate.year}',
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${amount >= 0 ? '+' : ''}${amount.toStringAsFixed(0)} FCFA',
+                                style: TextStyle(
+                                  color: amount >= 0 ? AppColors.success : AppColors.error,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Solde: ${balanceAfter.toStringAsFixed(0)} FCFA',
+                                style: Get.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.hint,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

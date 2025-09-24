@@ -5,6 +5,14 @@ import '../../../../core/constants/app_colors.dart';
 import 'finance_overview_page.dart';
 import 'accounts/accounts_list_page.dart';
 import 'accounts/account_create_page.dart';
+import 'transactions/transactions_list_page.dart';
+import 'transactions/transaction_create_page.dart';
+import 'categories/categories_list_page.dart';
+import 'budgets/budgets_list_page.dart';
+import 'analytics/finance_analytics_page.dart';
+import 'settings/finance_settings_page.dart';
+import 'import_export/import_export_page.dart';
+import 'objectives/objectives_list_page.dart';
 
 class FinanceMainPage extends GetView<FinanceController> {
   const FinanceMainPage({super.key});
@@ -262,7 +270,7 @@ class FinanceMainPage extends GetView<FinanceController> {
 
   void _navigateToAnalytics() {
     Get.back();
-    Get.snackbar('Info', 'Page analyses - À implémenter');
+    Get.to(() => const FinanceAnalyticsPage());
   }
 
   void _navigateToAccounts() {
@@ -277,36 +285,36 @@ class FinanceMainPage extends GetView<FinanceController> {
 
   void _navigateToTransactions() {
     Get.back();
-    Get.snackbar('Info', 'Liste transactions - À implémenter');
+    Get.to(() => const TransactionsListPage());
   }
 
   void _navigateToAddTransaction() {
     Get.back();
-    Get.snackbar('Info', 'Ajouter transaction - À implémenter');
+    Get.to(() => const TransactionCreatePage());
   }
 
   void _navigateToCategories() {
     Get.back();
-    Get.snackbar('Info', 'Catégories - À implémenter');
+    Get.to(() => const CategoriesListPage());
   }
 
   void _navigateToBudgets() {
     Get.back();
-    Get.snackbar('Info', 'Budgets - À implémenter');
+    Get.to(() => const BudgetsListPage());
   }
 
   void _navigateToObjectives() {
     Get.back();
-    Get.snackbar('Info', 'Objectifs - À implémenter');
+    Get.to(() => const ObjectivesListPage());
   }
 
   void _navigateToSettings() {
     Get.back();
-    Get.snackbar('Info', 'Paramètres finance - À implémenter');
+    Get.to(() => const FinanceSettingsPage());
   }
 
   void _navigateToImportExport() {
     Get.back();
-    Get.snackbar('Info', 'Import/Export - À implémenter');
+    Get.to(() => const ImportExportPage());
   }
 }

@@ -62,6 +62,9 @@ class BudgetModel {
   final double currentAmount;
   final String entityId;
   final String? categoryId; // Catégorie associée
+  final List<String> categoryIds; // Catégories associées (pour compatibilité)
+  final double spentAmount; // Montant dépensé
+  final double limitAmount; // Limite du budget (alias pour targetAmount)
   final String currency;
   final bool isActive;
   final AutomationRule? automationRule;
@@ -80,14 +83,17 @@ class BudgetModel {
     this.currentAmount = 0.0,
     required this.entityId,
     this.categoryId,
-    this.currency = 'EUR',
+    this.categoryIds = const [],
+    this.spentAmount = 0.0,
+    double? limitAmount,
+    this.currency = 'FCFA',
     this.isActive = true,
     this.automationRule,
     required this.startDate,
     this.endDate,
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : limitAmount = limitAmount ?? targetAmount;
 
   // Getters utiles
   bool get isExpenseBudget => type == BudgetType.expense;
@@ -109,6 +115,9 @@ class BudgetModel {
 
   bool get isOverBudget => isExpenseBudget && currentAmount > targetAmount;
   bool get isUnderTarget => isSavingBudget && currentAmount < targetAmount;
+
+  // Compatibility getters
+  bool get isExceeded => isOverBudget;
 
   String get typeDisplayName {
     switch (type) {
@@ -174,8 +183,11 @@ class BudgetModel {
       'period': period.name,
       'targetAmount': targetAmount,
       'currentAmount': currentAmount,
+      'spentAmount': spentAmount,
+      'limitAmount': limitAmount,
       'entityId': entityId,
       'categoryId': categoryId,
+      'categoryIds': categoryIds,
       'currency': currency,
       'isActive': isActive,
       'automationRule': automationRule?.toJson(),
@@ -201,9 +213,12 @@ class BudgetModel {
       ),
       targetAmount: (json['targetAmount'] ?? 0.0).toDouble(),
       currentAmount: (json['currentAmount'] ?? 0.0).toDouble(),
+      spentAmount: (json['spentAmount'] ?? 0.0).toDouble(),
+      limitAmount: (json['limitAmount'] ?? json['targetAmount'] ?? 0.0).toDouble(),
       entityId: json['entityId'] ?? '',
       categoryId: json['categoryId'],
-      currency: json['currency'] ?? 'EUR',
+      categoryIds: List<String>.from(json['categoryIds'] ?? []),
+      currency: json['currency'] ?? 'FCFA',
       isActive: json['isActive'] ?? true,
       automationRule: json['automationRule'] != null
           ? AutomationRule.fromJson(json['automationRule'])
@@ -239,9 +254,12 @@ class BudgetModel {
       ),
       targetAmount: (data['targetAmount'] ?? 0.0).toDouble(),
       currentAmount: (data['currentAmount'] ?? 0.0).toDouble(),
+      spentAmount: (data['spentAmount'] ?? 0.0).toDouble(),
+      limitAmount: (data['limitAmount'] ?? data['targetAmount'] ?? 0.0).toDouble(),
       entityId: data['entityId'] ?? '',
       categoryId: data['categoryId'],
-      currency: data['currency'] ?? 'EUR',
+      categoryIds: List<String>.from(data['categoryIds'] ?? []),
+      currency: data['currency'] ?? 'FCFA',
       isActive: data['isActive'] ?? true,
       automationRule: data['automationRule'] != null
           ? AutomationRule.fromJson(data['automationRule'])
@@ -261,8 +279,11 @@ class BudgetModel {
       'period': period.name,
       'targetAmount': targetAmount,
       'currentAmount': currentAmount,
+      'spentAmount': spentAmount,
+      'limitAmount': limitAmount,
       'entityId': entityId,
       'categoryId': categoryId,
+      'categoryIds': categoryIds,
       'currency': currency,
       'isActive': isActive,
       'automationRule': automationRule?.toJson(),
@@ -281,8 +302,11 @@ class BudgetModel {
     BudgetPeriod? period,
     double? targetAmount,
     double? currentAmount,
+    double? spentAmount,
+    double? limitAmount,
     String? entityId,
     String? categoryId,
+    List<String>? categoryIds,
     String? currency,
     bool? isActive,
     AutomationRule? automationRule,
@@ -299,8 +323,11 @@ class BudgetModel {
       period: period ?? this.period,
       targetAmount: targetAmount ?? this.targetAmount,
       currentAmount: currentAmount ?? this.currentAmount,
+      spentAmount: spentAmount ?? this.spentAmount,
+      limitAmount: limitAmount ?? this.limitAmount,
       entityId: entityId ?? this.entityId,
       categoryId: categoryId ?? this.categoryId,
+      categoryIds: categoryIds ?? this.categoryIds,
       currency: currency ?? this.currency,
       isActive: isActive ?? this.isActive,
       automationRule: automationRule ?? this.automationRule,

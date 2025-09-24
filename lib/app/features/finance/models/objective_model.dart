@@ -44,7 +44,7 @@ class ObjectiveModel {
     this.currentAmount = 0.0,
     required this.entityId,
     this.categoryId,
-    this.currency = 'EUR',
+    this.currency = 'FCFA',
     this.status = ObjectiveStatus.active,
     this.priority = ObjectivePriority.medium,
     this.targetDate,
@@ -136,6 +136,12 @@ class ObjectiveModel {
     return progressPercentage < expectedProgress - 10; // 10% de tolérance
   }
 
+  // Vérification si l'objectif est en retard (alias pour compatibilité)
+  bool get isOverdue {
+    if (targetDate == null) return false;
+    return DateTime.now().isAfter(targetDate!) && !isTargetReached;
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -170,7 +176,7 @@ class ObjectiveModel {
       currentAmount: (json['currentAmount'] ?? 0.0).toDouble(),
       entityId: json['entityId'] ?? '',
       categoryId: json['categoryId'],
-      currency: json['currency'] ?? 'EUR',
+      currency: json['currency'] ?? 'FCFA',
       status: ObjectiveStatus.values.firstWhere(
         (e) => e.name == json['status'],
         orElse: () => ObjectiveStatus.active,
@@ -211,7 +217,7 @@ class ObjectiveModel {
       currentAmount: (data['currentAmount'] ?? 0.0).toDouble(),
       entityId: data['entityId'] ?? '',
       categoryId: data['categoryId'],
-      currency: data['currency'] ?? 'EUR',
+      currency: data['currency'] ?? 'FCFA',
       status: ObjectiveStatus.values.firstWhere(
         (e) => e.name == data['status'],
         orElse: () => ObjectiveStatus.active,

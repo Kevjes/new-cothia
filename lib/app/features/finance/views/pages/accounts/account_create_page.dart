@@ -2,7 +2,7 @@ import 'package:cothia_app/app/core/utils/get_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../../controllers/finance_controller.dart';
+import '../../../controllers/accounts_controller.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../models/account_model.dart';
 
@@ -458,7 +458,7 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
     setState(() => _isLoading = true);
 
     try {
-      final controller = Get.find<FinanceController>();
+      final controller = Get.find<AccountsController>();
       final balance = double.parse(_initialBalanceController.text);
       bool success = false;
 
@@ -477,14 +477,22 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
         success = await controller.updateAccount(updatedAccount);
       } else {
         // Création d'un nouveau compte
-        success = await controller.createAccount(
+        final newAccount = AccountModel(
+          id: '',
           name: _nameController.text.trim(),
           type: _selectedType,
           initialBalance: balance,
+          currentBalance: balance,
+          projectedBalance: balance,
           description: _descriptionController.text.trim().isEmpty
               ? null
               : _descriptionController.text.trim(),
+          entityId: '', // Sera défini par le service
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
         );
+
+        success = await controller.createAccount(newAccount);
       }
 
       // Retour automatique à la page précédente si succès
@@ -538,7 +546,7 @@ class _AccountCreatePageState extends State<AccountCreatePage> {
     setState(() => _isLoading = true);
 
     try {
-      final controller = Get.find<FinanceController>();
+      final controller = Get.find<AccountsController>();
       final success = await controller.deleteAccount(widget.account!.id);
 
       // Retour automatique à la page précédente si succès

@@ -4,6 +4,12 @@ import '../../controllers/finance_controller.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../models/account_model.dart';
 import '../../models/transaction_model.dart';
+import 'accounts/accounts_list_page.dart';
+import 'accounts/account_create_page.dart';
+import 'accounts/account_details_page.dart';
+import 'transactions/transactions_list_page.dart';
+import 'transactions/transaction_create_page.dart';
+import 'transactions/transaction_details_page.dart';
 
 class FinanceDashboardPage extends GetView<FinanceController> {
   const FinanceDashboardPage({super.key});
@@ -359,7 +365,7 @@ class FinanceDashboardPage extends GetView<FinanceController> {
               ),
             ),
             TextButton(
-              onPressed: () => Get.snackbar('Info', 'Page comptes - À implémenter'),
+              onPressed: () => Get.to(() => const AccountsListPage()),
               child: const Text('Voir tout'),
             ),
           ],
@@ -430,7 +436,7 @@ class FinanceDashboardPage extends GetView<FinanceController> {
             color: account.currentBalance >= 0 ? AppColors.success : AppColors.error,
           ),
         ),
-        onTap: () => Get.snackbar('Info', 'Détails du compte - À implémenter'),
+        onTap: () => Get.to(() => AccountDetailsPage(account: account)),
       ),
     );
   }
@@ -449,7 +455,7 @@ class FinanceDashboardPage extends GetView<FinanceController> {
               ),
             ),
             TextButton(
-              onPressed: () => Get.snackbar('Info', 'Page transactions - À implémenter'),
+              onPressed: () => Get.to(() => const TransactionsListPage()),
               child: const Text('Voir tout'),
             ),
           ],
@@ -526,7 +532,7 @@ class FinanceDashboardPage extends GetView<FinanceController> {
             color: color,
           ),
         ),
-        onTap: () => Get.snackbar('Info', 'Détails de la transaction - À implémenter'),
+        onTap: () => Get.to(() => TransactionDetailsPage(transaction: transaction)),
       ),
     );
   }
@@ -617,10 +623,10 @@ class FinanceDashboardPage extends GetView<FinanceController> {
   }
 
   void _addTransaction(TransactionType type) {
-    Get.snackbar('Info', 'Ajouter ${type.name} - À implémenter');
+    Get.to(() => const TransactionCreatePage());
   }
 
   void _addAccount() {
-    Get.snackbar('Info', 'Créer un compte - À implémenter');
+    Get.to(() => const AccountCreatePage());
   }
 }

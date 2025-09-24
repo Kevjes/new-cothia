@@ -611,26 +611,26 @@ class FinanceOverviewPage extends GetView<FinanceController> {
 
   // Action methods
   void _addTransaction(TransactionType type) {
-    Get.snackbar('Info', 'Ajouter ${type.name} - À implémenter');
+    Get.toNamed('/finance/transactions/create', arguments: {'type': type});
   }
 
   void _addAccount() {
-    Get.snackbar('Info', 'Créer un compte - À implémenter');
+    Get.toNamed('/finance/accounts/create');
   }
 
   void _viewAllAccounts() {
-    Get.snackbar('Info', 'Liste des comptes - À implémenter');
+    Get.toNamed('/finance/accounts');
   }
 
   void _viewAllTransactions() {
-    Get.snackbar('Info', 'Liste des transactions - À implémenter');
+    Get.toNamed('/finance/transactions');
   }
 
   void _viewAccountDetails(AccountModel account) {
-    Get.snackbar('Info', 'Détails du compte ${account.name} - À implémenter');
+    Get.toNamed('/finance/accounts/details', arguments: {'account': account});
   }
 
   void _viewTransactionDetails(TransactionModel transaction) {
-    Get.snackbar('Info', 'Détails de la transaction - À implémenter');
+    Get.toNamed('/finance/transactions/details', arguments: {'transaction': transaction});
   }
 }

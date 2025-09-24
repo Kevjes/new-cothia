@@ -6,11 +6,39 @@ enum TransactionType {
   transfer, // Transfert
 }
 
+extension TransactionTypeExtension on TransactionType {
+  String get displayName {
+    switch (this) {
+      case TransactionType.income:
+        return 'Revenu';
+      case TransactionType.expense:
+        return 'Dépense';
+      case TransactionType.transfer:
+        return 'Transfert';
+    }
+  }
+}
+
 enum TransactionStatus {
   planned,   // Prévue
   pending,   // En attente
   validated, // Validée
   cancelled, // Annulée
+}
+
+extension TransactionStatusExtension on TransactionStatus {
+  String get displayName {
+    switch (this) {
+      case TransactionStatus.planned:
+        return 'Prévue';
+      case TransactionStatus.pending:
+        return 'En attente';
+      case TransactionStatus.validated:
+        return 'Validée';
+      case TransactionStatus.cancelled:
+        return 'Annulée';
+    }
+  }
 }
 
 class TransactionModel {
@@ -103,6 +131,10 @@ class TransactionModel {
         return sourceAccountId != null && destinationAccountId != null;
     }
   }
+
+  // Getter pour compatibilité
+  DateTime get date => transactionDate;
+
 
   Map<String, dynamic> toJson() {
     return {

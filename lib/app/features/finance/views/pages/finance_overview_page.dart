@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/finance_controller.dart';
+import '../../controllers/automation_controller.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../models/account_model.dart';
 import '../../models/transaction_model.dart';
+import 'automation/automation_dashboard_page.dart';
 
 class FinanceOverviewPage extends GetView<FinanceController> {
   const FinanceOverviewPage({super.key});
@@ -33,6 +35,8 @@ class FinanceOverviewPage extends GetView<FinanceController> {
               _buildQuickStats(),
               const SizedBox(height: 24),
               _buildQuickActions(),
+              const SizedBox(height: 24),
+              _buildAutomationSection(),
               const SizedBox(height: 24),
               _buildAccountsPreview(),
               const SizedBox(height: 24),
@@ -400,6 +404,171 @@ class FinanceOverviewPage extends GetView<FinanceController> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAutomationSection() {
+    return GetBuilder<AutomationController>(
+      init: AutomationController(),
+      builder: (automationController) {
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.auto_fix_high, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Automatisations',
+                      style: Get.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => Get.to(() => const AutomationDashboardPage()),
+                      child: const Text('Voir tout'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (automationController.hasError) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error, color: AppColors.error, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Erreur lors du chargement des automatisations',
+                            style: TextStyle(color: AppColors.error, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildAutomationStat(
+                          'En attente',
+                          automationController.totalPendingAutomations.toString(),
+                          Icons.schedule,
+                          AppColors.secondary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildAutomationStat(
+                          'Aujourd\'hui',
+                          automationController.automationsToday.toString(),
+                          Icons.today,
+                          AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildAutomationStat(
+                          'Montant total',
+                          '${automationController.totalPendingAmount.toStringAsFixed(0)} FCFA',
+                          Icons.monetization_on,
+                          AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: automationController.isExecuting
+                              ? null
+                              : () => automationController.executeAllAutomations(showProgress: false),
+                          icon: automationController.isExecuting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.play_arrow),
+                          label: const Text('Exécuter'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Get.to(() => const AutomationDashboardPage()),
+                          icon: const Icon(Icons.settings),
+                          label: const Text('Gérer'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAutomationStat(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 16),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: AppColors.hint,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

@@ -12,16 +12,44 @@ import '../transactions/transaction_create_page.dart';
 import '../transactions/transactions_list_page.dart';
 
 class AccountDetailsPage extends StatelessWidget {
-  final AccountModel account;
+  final AccountModel? account;
 
   const AccountDetailsPage({super.key, required this.account});
 
   @override
   Widget build(BuildContext context) {
+    // Vérifier si le compte est null
+    if (account == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Erreur'),
+          centerTitle: true,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                'Compte non trouvé',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('Le compte que vous cherchez n\'existe pas ou n\'a pas pu être chargé.'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final currentAccount = account!;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(account.name),
+        title: Text(account!.name),
         centerTitle: true,
         actions: [
           IconButton(
@@ -91,7 +119,7 @@ class AccountDetailsPage extends StatelessWidget {
   }
 
   Widget _buildAccountHeader() {
-    final balanceColor = account.currentBalance >= 0 ? AppColors.success : AppColors.error;
+    final balanceColor = account!.currentBalance >= 0 ? AppColors.success : AppColors.error;
 
     return Card(
       child: Padding(
@@ -104,7 +132,7 @@ class AccountDetailsPage extends StatelessWidget {
                   radius: 35,
                   backgroundColor: AppColors.secondary.withOpacity(0.1),
                   child: Icon(
-                    _getAccountIcon(account.type),
+                    _getAccountIcon(account!.type),
                     color: AppColors.secondary,
                     size: 35,
                   ),
@@ -115,14 +143,14 @@ class AccountDetailsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        account.name,
+                        account!.name,
                         style: Get.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        account.typeDisplayName,
+                        account!.typeDisplayName,
                         style: Get.textTheme.bodyLarge?.copyWith(
                           color: AppColors.hint,
                         ),
@@ -151,7 +179,7 @@ class AccountDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${account.currentBalance.toStringAsFixed(0)} FCFA',
+                    '${account!.currentBalance.toStringAsFixed(0)} FCFA',
                     style: Get.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: balanceColor,
@@ -182,22 +210,22 @@ class AccountDetailsPage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildInfoRow(
               'Type de compte',
-              account.typeDisplayName,
-              _getAccountIcon(account.type),
+              account!.typeDisplayName,
+              _getAccountIcon(account!.type),
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
               'Date de création',
-              _formatDate(account.createdAt),
+              _formatDate(account!.createdAt),
               Icons.calendar_today,
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
               'Dernière modification',
-              _formatDate(account.updatedAt),
+              _formatDate(account!.updatedAt),
               Icons.update,
             ),
-            if (account.description != null && account.description!.isNotEmpty) ...[
+            if (account!.description != null && account!.description!.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 16),
@@ -209,7 +237,7 @@ class AccountDetailsPage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                account.description!,
+                account!.description!,
                 style: Get.textTheme.bodyMedium,
               ),
             ],
@@ -429,7 +457,7 @@ class AccountDetailsPage extends StatelessWidget {
             Obx(() {
               // Filtrer les transactions pour ce compte
               final accountTransactions = controller.recentTransactions
-                  .where((t) => t.sourceAccountId == account.id || t.destinationAccountId == account.id)
+                  .where((t) => t.sourceAccountId == account!.id || t.destinationAccountId == account!.id)
                   .take(5)
                   .toList();
 
@@ -543,7 +571,7 @@ class AccountDetailsPage extends StatelessWidget {
 
   void _duplicateAccount() {
     final accountsController = Get.find<AccountsController>();
-    accountsController.duplicateAccount(account);
+    accountsController.duplicateAccount(account!);
   }
 
   void _showDeleteDialog() {
@@ -552,7 +580,7 @@ class AccountDetailsPage extends StatelessWidget {
         backgroundColor: AppColors.surface,
         title: const Text('Supprimer le compte'),
         content: Text(
-          'Êtes-vous sûr de vouloir supprimer le compte "${account.name}" ?\n\nCette action est irréversible.',
+          'Êtes-vous sûr de vouloir supprimer le compte "${account!.name}" ?\n\nCette action est irréversible.',
         ),
         actions: [
           TextButton(
@@ -575,7 +603,7 @@ class AccountDetailsPage extends StatelessWidget {
   Future<void> _deleteAccount() async {
     Get.back(); // Fermer le dialog
     final accountsController = Get.find<AccountsController>();
-    final success = await accountsController.deleteAccount(account.id);
+    final success = await accountsController.deleteAccount(account!.id);
     if (success) {
       Get.safeBack();
     }
@@ -588,7 +616,7 @@ class AccountDetailsPage extends StatelessWidget {
     AccountModel? selectedDestination;
 
     final availableAccounts = accountsController.accounts
-        .where((a) => a.id != account.id && a.isActive)
+        .where((a) => a.id != account!.id && a.isActive)
         .toList();
 
     if (availableAccounts.isEmpty) {
@@ -608,8 +636,8 @@ class AccountDetailsPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Depuis: ${account.name}'),
-              Text('Solde: ${account.currentBalance.toStringAsFixed(0)} FCFA'),
+              Text('Depuis: ${account!.name}'),
+              Text('Solde: ${account!.currentBalance.toStringAsFixed(0)} FCFA'),
               const SizedBox(height: 16),
               DropdownButtonFormField<AccountModel>(
                 decoration: const InputDecoration(
@@ -654,7 +682,7 @@ class AccountDetailsPage extends StatelessWidget {
                 if (amount != null && amount > 0) {
                   Get.back();
                   accountsController.transferMoney(
-                    account.id,
+                    account!.id,
                     selectedDestination!.id,
                     amount,
                     descriptionController.text,
@@ -672,7 +700,7 @@ class AccountDetailsPage extends StatelessWidget {
   void _showAdjustBalanceDialog() {
     final accountsController = Get.find<AccountsController>();
     final balanceController = TextEditingController(
-      text: account.currentBalance.toStringAsFixed(0),
+      text: account!.currentBalance.toStringAsFixed(0),
     );
     final reasonController = TextEditingController();
 
@@ -683,7 +711,7 @@ class AccountDetailsPage extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Solde actuel: ${account.currentBalance.toStringAsFixed(0)} FCFA'),
+            Text('Solde actuel: ${account!.currentBalance.toStringAsFixed(0)} FCFA'),
             const SizedBox(height: 16),
             TextFormField(
               controller: balanceController,
@@ -713,7 +741,7 @@ class AccountDetailsPage extends StatelessWidget {
               if (newBalance != null && reasonController.text.isNotEmpty) {
                 Get.back();
                 accountsController.adjustBalance(
-                  account.id,
+                  account!.id,
                   newBalance,
                   reasonController.text,
                 );
@@ -740,7 +768,7 @@ class AccountDetailsPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Historique - ${account.name}',
+                    'Historique - ${account!.name}',
                     style: Get.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -754,7 +782,7 @@ class AccountDetailsPage extends StatelessWidget {
               const Divider(),
               Expanded(
                 child: FutureBuilder<List<Map<String, dynamic>>>(
-                  future: Get.find<AccountsController>().getAccountHistory(account.id),
+                  future: Get.find<AccountsController>().getAccountHistory(account!.id),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());

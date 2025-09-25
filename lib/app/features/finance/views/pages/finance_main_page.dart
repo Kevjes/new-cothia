@@ -13,6 +13,7 @@ import 'analytics/finance_analytics_page.dart';
 import 'settings/finance_settings_page.dart';
 import 'import_export/import_export_page.dart';
 import 'objectives/objectives_list_page.dart';
+import 'automation/automation_dashboard_page.dart';
 
 class FinanceMainPage extends GetView<FinanceController> {
   const FinanceMainPage({super.key});
@@ -109,6 +110,11 @@ class FinanceMainPage extends GetView<FinanceController> {
                       'Objectifs',
                       Icons.track_changes,
                       () => _navigateToObjectives(),
+                    ),
+                    _buildDrawerItem(
+                      'Automatisations',
+                      Icons.auto_fix_high,
+                      () => _navigateToAutomation(),
                     ),
                   ],
                 ),
@@ -316,5 +322,10 @@ class FinanceMainPage extends GetView<FinanceController> {
   void _navigateToImportExport() {
     Get.back();
     Get.to(() => const ImportExportPage());
+  }
+
+  void _navigateToAutomation() {
+    Get.back();
+    Get.to(() => const AutomationDashboardPage());
   }
 }

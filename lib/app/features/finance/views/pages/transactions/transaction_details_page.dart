@@ -7,12 +7,38 @@ import '../../../models/transaction_model.dart';
 import 'transaction_create_page.dart';
 
 class TransactionDetailsPage extends StatelessWidget {
-  final TransactionModel transaction;
+  final TransactionModel? transaction;
 
   const TransactionDetailsPage({super.key, required this.transaction});
 
   @override
   Widget build(BuildContext context) {
+    // Vérifier si la transaction est null
+    if (transaction == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Erreur'),
+          centerTitle: true,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                'Transaction non trouvée',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('La transaction que vous cherchez n\'existe pas ou n\'a pas pu être chargée.'),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -38,7 +64,7 @@ class TransactionDetailsPage extends StatelessWidget {
               }
             },
             itemBuilder: (context) => [
-              if (transaction.status == TransactionStatus.pending)
+              if (transaction!.status == TransactionStatus.pending)
                 const PopupMenuItem(
                   value: 'validate',
                   child: Row(
@@ -87,14 +113,14 @@ class TransactionDetailsPage extends StatelessWidget {
             _buildStatusInfo(),
             const SizedBox(height: 24),
             _buildQuickActions(),
-            if (transaction.description != null && transaction.description!.isNotEmpty) ...[
+            if (transaction!.description != null && transaction!.description!.isNotEmpty) ...[
               const SizedBox(height: 24),
               _buildDescription(),
             ],
           ],
         ),
       ),
-      floatingActionButton: transaction.status == TransactionStatus.pending
+      floatingActionButton: transaction!. status == TransactionStatus.pending
           ? FloatingActionButton.extended(
               onPressed: () => _validateTransaction(),
               backgroundColor: AppColors.success,
@@ -106,8 +132,8 @@ class TransactionDetailsPage extends StatelessWidget {
   }
 
   Widget _buildTransactionHeader() {
-    final isIncome = transaction.type == TransactionType.income;
-    final isTransfer = transaction.type == TransactionType.transfer;
+    final isIncome = transaction!.type == TransactionType.income;
+    final isTransfer = transaction!.type == TransactionType.transfer;
 
     Color color;
     IconData icon;
@@ -149,14 +175,14 @@ class TransactionDetailsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        transaction.title,
+                        transaction!.title,
                         style: Get.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _getTypeDisplayName(transaction.type),
+                        _getTypeDisplayName(transaction!.type),
                         style: Get.textTheme.bodyLarge?.copyWith(
                           color: AppColors.hint,
                         ),
@@ -185,7 +211,7 @@ class TransactionDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '$prefix${transaction.amount.toStringAsFixed(0)} FCFA',
+                    '$prefix${transaction!  .amount.toStringAsFixed(0)} FCFA',
                     style: Get.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: color,
@@ -216,26 +242,26 @@ class TransactionDetailsPage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildInfoRow(
               'Type',
-              _getTypeDisplayName(transaction.type),
-              _getTypeIcon(transaction.type),
+              _getTypeDisplayName(transaction!.type),
+              _getTypeIcon(transaction!.type),
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
               'Date',
-              _formatDate(transaction.transactionDate),
+              _formatDate(transaction!.transactionDate),
               Icons.calendar_today,
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
               'Créée le',
-              _formatDateTime(transaction.createdAt),
+              _formatDateTime(transaction!.createdAt),
               Icons.access_time,
             ),
-            if (transaction.updatedAt != transaction.createdAt) ...[
+            if (transaction!.updatedAt != transaction!.createdAt) ...[
               const SizedBox(height: 12),
               _buildInfoRow(
                 'Modifiée le',
-                _formatDateTime(transaction.updatedAt),
+                _formatDateTime(transaction!.updatedAt),
                 Icons.update,
               ),
             ],
@@ -261,19 +287,19 @@ class TransactionDetailsPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            if (transaction.sourceAccountId != null) ...[
+            if (transaction!.sourceAccountId != null) ...[
               _buildAccountRow(
                 'Compte source',
-                _getAccountName(controller, transaction.sourceAccountId!),
+                _getAccountName(controller, transaction!.sourceAccountId!),
                 Icons.account_balance,
                 AppColors.error,
               ),
-              if (transaction.destinationAccountId != null) const SizedBox(height: 12),
+              if (transaction!.destinationAccountId != null) const SizedBox(height: 12),
             ],
-            if (transaction.destinationAccountId != null) ...[
+            if (transaction!.destinationAccountId != null) ...[
               _buildAccountRow(
                 'Compte destination',
-                _getAccountName(controller, transaction.destinationAccountId!),
+                _getAccountName(controller, transaction!.destinationAccountId!),
                 Icons.account_balance_wallet,
                 AppColors.success,
               ),
@@ -285,7 +311,7 @@ class TransactionDetailsPage extends StatelessWidget {
   }
 
   Widget _buildStatusInfo() {
-    final statusColor = _getStatusColor(transaction.status);
+    final statusColor = _getStatusColor(transaction!.status);
 
     return Card(
       child: Padding(
@@ -311,7 +337,7 @@ class TransactionDetailsPage extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(
-                    _getStatusIcon(transaction.status),
+                    _getStatusIcon(transaction!.status),
                     color: statusColor,
                   ),
                   const SizedBox(width: 12),
@@ -320,14 +346,14 @@ class TransactionDetailsPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          transaction.statusDisplayName,
+                          transaction!.statusDisplayName,
                           style: Get.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: statusColor,
                           ),
                         ),
                         Text(
-                          _getStatusDescription(transaction.status),
+                          _getStatusDescription(transaction!.status),
                           style: Get.textTheme.bodySmall?.copyWith(
                             color: statusColor,
                           ),
@@ -379,7 +405,7 @@ class TransactionDetailsPage extends StatelessWidget {
                 ),
               ],
             ),
-            if (transaction.status == TransactionStatus.pending) ...[
+            if (transaction!.status == TransactionStatus.pending) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -431,7 +457,7 @@ class TransactionDetailsPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                transaction.description!,
+                transaction!.description!,
                 style: Get.textTheme.bodyMedium,
               ),
             ),
@@ -608,9 +634,9 @@ class TransactionDetailsPage extends StatelessWidget {
 
   void _duplicateTransaction() {
     // Créer une copie avec un nouveau titre
-    final duplicatedTransaction = transaction.copyWith(
+    final duplicatedTransaction = transaction!.copyWith(
       id: '',
-      title: '${transaction.title} (copie)',
+      title: '${transaction!.title} (copie)',
       status: TransactionStatus.pending,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -622,7 +648,7 @@ class TransactionDetailsPage extends StatelessWidget {
   Future<void> _validateTransaction() async {
     try {
       final controller = Get.find<TransactionsController>();
-      await controller.validateTransaction(transaction.id);
+      await controller.validateTransaction(transaction!.id);
 
       Get.snackbar(
         'Succès',
@@ -660,11 +686,11 @@ class TransactionDetailsPage extends StatelessWidget {
               Get.back();
               try {
                 final controller = Get.find<TransactionsController>();
-                final cancelledTransaction = transaction.copyWith(
+                final cancelledTransaction = transaction!.copyWith(
                   status: TransactionStatus.cancelled,
                   updatedAt: DateTime.now(),
                 );
-                await controller.updateTransaction(transaction.id, cancelledTransaction);
+                await controller.updateTransaction(transaction!.id, cancelledTransaction);
                 Get.safeBack();
               } catch (e) {
                 Get.snackbar(
@@ -693,7 +719,7 @@ class TransactionDetailsPage extends StatelessWidget {
         backgroundColor: AppColors.surface,
         title: const Text('Supprimer la transaction'),
         content: Text(
-          'Êtes-vous sûr de vouloir supprimer la transaction "${transaction.title}" ?\n\nCette action est irréversible.',
+          'Êtes-vous sûr de vouloir supprimer la transaction "${transaction!.title}" ?\n\nCette action est irréversible.',
         ),
         actions: [
           TextButton(
@@ -718,7 +744,7 @@ class TransactionDetailsPage extends StatelessWidget {
 
     try {
       final controller = Get.find<TransactionsController>();
-      final success = await controller.deleteTransaction(transaction.id);
+      final success = await controller.deleteTransaction(transaction!.id);
 
       if (success) {
         Get.safeBack();

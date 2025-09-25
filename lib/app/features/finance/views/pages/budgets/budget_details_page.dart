@@ -9,16 +9,44 @@ import 'budget_create_page.dart';
 import '../../../../../core/utils/get_extensions.dart';
 
 class BudgetDetailsPage extends StatelessWidget {
-  final BudgetModel budget;
+  final BudgetModel? budget;
 
   const BudgetDetailsPage({super.key, required this.budget});
 
   @override
   Widget build(BuildContext context) {
+    // Vérifier si le budget est null
+    if (budget == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Erreur'),
+          centerTitle: true,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                'Budget non trouvé',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('Le budget que vous cherchez n\'existe pas ou n\'a pas pu être chargé.'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final currentBudget = budget!;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(budget.name),
+        title: Text(budget!.name),
         centerTitle: true,
         actions: [
           IconButton(
@@ -87,8 +115,8 @@ class BudgetDetailsPage extends StatelessWidget {
             const SizedBox(height: 24),
             _buildPeriodInfo(),
             const SizedBox(height: 24),
-            if (budget.hasAutomation) _buildAutomationInfo(),
-            if (budget.hasAutomation) const SizedBox(height: 24),
+            if (budget!.hasAutomation) _buildAutomationInfo(),
+            if (budget!.hasAutomation) const SizedBox(height: 24),
             _buildQuickActions(),
             const SizedBox(height: 24),
             _buildTransactionHistory(),
@@ -105,15 +133,15 @@ class BudgetDetailsPage extends StatelessWidget {
   }
 
   Widget _buildBudgetHeader() {
-    final progressPercentage = budget.progressPercentage;
-    final isOverBudget = budget.isOverBudget;
-    final isUnderTarget = budget.isUnderTarget;
+    final progressPercentage = budget!.progressPercentage;
+    final isOverBudget = budget!.isOverBudget;
+    final isUnderTarget = budget!.isUnderTarget;
 
     Color statusColor;
     String statusText;
     IconData statusIcon;
 
-    if (budget.isExpenseBudget) {
+    if (budget!.isExpenseBudget) {
       if (isOverBudget) {
         statusColor = AppColors.error;
         statusText = 'Budget dépassé';
@@ -152,12 +180,12 @@ class BudgetDetailsPage extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 35,
-                  backgroundColor: budget.isExpenseBudget
+                  backgroundColor: budget!.isExpenseBudget
                       ? AppColors.error.withOpacity(0.1)
                       : AppColors.success.withOpacity(0.1),
                   child: Icon(
-                    budget.isExpenseBudget ? Icons.trending_down : Icons.savings,
-                    color: budget.isExpenseBudget ? AppColors.error : AppColors.success,
+                    budget!.isExpenseBudget ? Icons.trending_down : Icons.savings,
+                    color: budget!.isExpenseBudget ? AppColors.error : AppColors.success,
                     size: 35,
                   ),
                 ),
@@ -167,14 +195,14 @@ class BudgetDetailsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        budget.name,
+                        budget!.name,
                         style: Get.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        budget.typeDisplayName,
+                        budget!.typeDisplayName,
                         style: Get.textTheme.bodyLarge?.copyWith(
                           color: AppColors.hint,
                         ),
@@ -209,7 +237,7 @@ class BudgetDetailsPage extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${progressPercentage.toStringAsFixed(1)}% ${budget.isExpenseBudget ? 'utilisé' : 'atteint'}',
+                          '${progressPercentage.toStringAsFixed(1)}% ${budget!.isExpenseBudget ? 'utilisé' : 'atteint'}',
                           style: Get.textTheme.bodyMedium?.copyWith(
                             color: statusColor,
                           ),
@@ -227,10 +255,10 @@ class BudgetDetailsPage extends StatelessWidget {
   }
 
   Widget _buildProgressCard() {
-    final progressPercentage = budget.progressPercentage;
+    final progressPercentage = budget!.progressPercentage;
     Color progressColor;
 
-    if (budget.isExpenseBudget) {
+    if (budget!.isExpenseBudget) {
       if (progressPercentage >= 100) {
         progressColor = AppColors.error;
       } else if (progressPercentage >= 80) {
@@ -274,7 +302,7 @@ class BudgetDetailsPage extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${budget.currentAmount.toStringAsFixed(0)} FCFA',
+                      '${budget!.currentAmount.toStringAsFixed(0)} FCFA',
                       style: Get.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: progressColor,
@@ -292,7 +320,7 @@ class BudgetDetailsPage extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${budget.targetAmount.toStringAsFixed(0)} FCFA',
+                      '${budget!.targetAmount.toStringAsFixed(0)} FCFA',
                       style: Get.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.hint,
@@ -323,11 +351,11 @@ class BudgetDetailsPage extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (budget.remainingAmount != 0)
+                if (budget!.remainingAmount != 0)
                   Text(
-                    budget.isExpenseBudget
-                        ? 'Reste: ${budget.remainingAmount.toStringAsFixed(0)} FCFA'
-                        : 'Manque: ${budget.remainingAmount.abs().toStringAsFixed(0)} FCFA',
+                    budget!.isExpenseBudget
+                        ? 'Reste: ${budget!.remainingAmount.toStringAsFixed(0)} FCFA'
+                        : 'Manque: ${budget!.remainingAmount.abs().toStringAsFixed(0)} FCFA',
                     style: Get.textTheme.bodyMedium?.copyWith(
                       color: AppColors.hint,
                     ),
@@ -342,8 +370,8 @@ class BudgetDetailsPage extends StatelessWidget {
 
   Widget _buildBudgetInfo() {
     final controller = Get.find<CategoriesController>();
-    final category = budget.categoryId != null
-        ? controller.categories.where((c) => c.id == budget.categoryId).firstOrNull
+    final category = budget!.categoryId != null
+        ? controller.categories.where((c) => c.id == budget!.categoryId).firstOrNull
         : null;
 
     return Card(
@@ -361,19 +389,19 @@ class BudgetDetailsPage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildInfoRow(
               'Type',
-              budget.typeDisplayName,
-              budget.isExpenseBudget ? Icons.trending_down : Icons.savings,
+              budget!.typeDisplayName,
+              budget!.isExpenseBudget ? Icons.trending_down : Icons.savings,
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
               'Période',
-              budget.periodDisplayName,
+              budget!.periodDisplayName,
               Icons.schedule,
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
               'Devise',
-              budget.currency,
+              budget!.currency,
               Icons.currency_exchange,
             ),
             if (category != null) ...[
@@ -385,7 +413,7 @@ class BudgetDetailsPage extends StatelessWidget {
                 iconColor: category.color,
               ),
             ],
-            if (budget.description != null && budget.description!.isNotEmpty) ...[
+            if (budget!.description != null && budget!.description!.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 16),
@@ -397,7 +425,7 @@ class BudgetDetailsPage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                budget.description!,
+                budget!.description!,
                 style: Get.textTheme.bodyMedium,
               ),
             ],
@@ -462,7 +490,7 @@ class BudgetDetailsPage extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        _formatDate(budget.currentPeriodStart),
+                        _formatDate(budget!.currentPeriodStart),
                         style: Get.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
@@ -481,7 +509,7 @@ class BudgetDetailsPage extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        _formatDate(budget.currentPeriodEnd),
+                        _formatDate(budget!.currentPeriodEnd),
                         style: Get.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
@@ -522,7 +550,7 @@ class BudgetDetailsPage extends StatelessWidget {
   }
 
   Widget _buildAutomationInfo() {
-    final automation = budget.automationRule!;
+    final automation = budget!.automationRule!;
     final controller = Get.find<FinanceController>();
 
     final sourceAccount = automation.sourceAccountId != null
@@ -748,9 +776,9 @@ class BudgetDetailsPage extends StatelessWidget {
 
   void _duplicateBudget() {
     Get.to(() => BudgetCreatePage(
-      budget: budget.copyWith(
+      budget: budget!.copyWith(
         id: '',
-        name: '${budget.name} (Copie)',
+        name: '${budget!.name} (Copie)',
         currentAmount: 0.0,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -760,7 +788,7 @@ class BudgetDetailsPage extends StatelessWidget {
 
   void _adjustBudgetAmount() {
     final controller = TextEditingController(
-      text: budget.currentAmount.toStringAsFixed(0),
+      text: budget!.currentAmount.toStringAsFixed(0),
     );
 
     Get.dialog(
@@ -770,7 +798,7 @@ class BudgetDetailsPage extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Montant actuel: ${budget.currentAmount.toStringAsFixed(0)} FCFA'),
+            Text('Montant actuel: ${budget!.currentAmount.toStringAsFixed(0)} FCFA'),
             const SizedBox(height: 16),
             TextFormField(
               controller: controller,
@@ -805,7 +833,7 @@ class BudgetDetailsPage extends StatelessWidget {
     }
 
     final controller = Get.find<BudgetsController>();
-    await controller.updateBudget(budget.copyWith(currentAmount: amount));
+    await controller.updateBudget(budget!.copyWith(currentAmount: amount));
   }
 
   void _showResetDialog() {
@@ -837,7 +865,7 @@ class BudgetDetailsPage extends StatelessWidget {
   Future<void> _resetBudget() async {
     Get.back();
     final controller = Get.find<BudgetsController>();
-    await controller.updateBudget(budget.copyWith(currentAmount: 0.0));
+    await controller.updateBudget(budget!.copyWith(currentAmount: 0.0));
   }
 
   void _showDeleteDialog() {
@@ -846,7 +874,7 @@ class BudgetDetailsPage extends StatelessWidget {
         backgroundColor: AppColors.surface,
         title: const Text('Supprimer le budget'),
         content: Text(
-          'Êtes-vous sûr de vouloir supprimer le budget "${budget.name}" ?\n\nCette action est irréversible.',
+          'Êtes-vous sûr de vouloir supprimer le budget "${budget!.name}" ?\n\nCette action est irréversible.',
         ),
         actions: [
           TextButton(
@@ -869,7 +897,7 @@ class BudgetDetailsPage extends StatelessWidget {
   Future<void> _deleteBudget() async {
     Get.back();
     final controller = Get.find<BudgetsController>();
-    final success = await controller.deleteBudget(budget.id);
+    final success = await controller.deleteBudget(budget!.id);
     if (success) {
       Get.safeBack();
     }
@@ -885,7 +913,7 @@ class BudgetDetailsPage extends StatelessWidget {
           height: 400,
           child: Column(
             children: [
-              Text('Budget: ${budget.name}'),
+              Text('Budget: ${budget!.name}'),
               const SizedBox(height: 16),
               Expanded(
                 child: ListView.builder(

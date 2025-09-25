@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../controllers/transactions_controller.dart';
+import '../../../controllers/budgets_controller.dart';
+import '../../../controllers/categories_controller.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../models/transaction_model.dart';
 import '../../../models/account_model.dart';
@@ -26,7 +28,10 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
   TransactionStatus _selectedStatus = TransactionStatus.validated;
   String? _selectedSourceAccountId;
   String? _selectedDestinationAccountId;
+  String? _selectedCategoryId;
+  String? _selectedBudgetId;
   DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.now();
   bool _isLoading = false;
   bool get _isEditing => widget.transaction != null;
 
@@ -47,7 +52,10 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
     _selectedStatus = transaction.status;
     _selectedSourceAccountId = transaction.sourceAccountId;
     _selectedDestinationAccountId = transaction.destinationAccountId;
+    _selectedCategoryId = transaction.categoryId;
+    _selectedBudgetId = transaction.budgetId;
     _selectedDate = transaction.transactionDate;
+    _selectedTime = TimeOfDay.fromDateTime(transaction.transactionDate);
   }
 
   @override
@@ -88,6 +96,8 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
               const SizedBox(height: 24),
               _buildAccountsSection(),
               const SizedBox(height: 24),
+              _buildCategoryAndBudgetSection(),
+              const SizedBox(height: 24),
               _buildDateSection(),
               const SizedBox(height: 24),
               _buildStatusSection(),
@@ -95,10 +105,10 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
               _buildAdditionalInfoSection(),
               const SizedBox(height: 32),
               _buildActionButtons(),
-            ],
-          ),
+              ],
+              ),
+            ),
         ),
-      ),
     );
   }
 
@@ -158,6 +168,7 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
             ),
             const SizedBox(height: 16),
             Row(
+              mainAxisSize: MainAxisSize.max,
               children: TransactionType.values.map((type) {
                 final isSelected = _selectedType == type;
                 return Expanded(
@@ -416,6 +427,188 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
     );
   }
 
+  Widget _buildCategoryAndBudgetSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Catégorie et Budget',
+              style: Get.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Sélecteur de catégorie
+            GetBuilder<CategoriesController>(
+              builder: (controller) => DropdownButtonFormField<String>(
+                value: _selectedCategoryId,
+                decoration: InputDecoration(
+                  labelText: 'Catégorie (optionnelle)',
+                  prefixIcon: const Icon(Icons.category),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  hintText: 'Sélectionner une catégorie',
+                ),
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('Aucune catégorie'),
+                  ),
+                  ...controller.categories.map((category) {
+                    return DropdownMenuItem(
+                      value: category.id,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.circle,
+                            color: _getCategoryColor(category.color),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(child: Text(category.name, overflow: TextOverflow.ellipsis)),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+                onChanged: (value) {
+                  setState(() => _selectedCategoryId = value);
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Sélecteur de budget
+            GetBuilder<BudgetsController>(
+              builder: (controller) => DropdownButtonFormField<String>(
+                value: _selectedBudgetId,
+                decoration: InputDecoration(
+                  labelText: 'Budget (optionnel)',
+                  prefixIcon: const Icon(Icons.account_balance_wallet),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  hintText: 'Associer à un budget',
+                ),
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('Aucun budget'),
+                  ),
+                  ...controller.budgets
+                      .where((budget) =>
+                          // Afficher les budgets de dépense pour les dépenses/transferts sortants
+                          (_selectedType == TransactionType.expense && budget.type.name == 'expense') ||
+                          // Afficher les budgets d'épargne pour les revenus/transferts entrants
+                          (_selectedType == TransactionType.income && budget.type.name == 'saving') ||
+                          // Pour les transferts, afficher tous les budgets
+                          _selectedType == TransactionType.transfer
+                      )
+                      .map((budget) {
+                    final progressPercentage = budget.targetAmount > 0
+                        ? (budget.spentAmount / budget.targetAmount * 100).clamp(0, 100)
+                        : 0.0;
+
+                    return DropdownMenuItem(
+                      value: budget.id,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  budget.name,
+                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${budget.spentAmount.toStringAsFixed(0)}/${budget.targetAmount.toStringAsFixed(0)} FCFA',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.hint,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          LinearProgressIndicator(
+                            value: progressPercentage / 100,
+                            backgroundColor: AppColors.surface,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              progressPercentage > 90 ? AppColors.error :
+                              progressPercentage > 70 ? Colors.orange : AppColors.success,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+                onChanged: (value) {
+                  setState(() => _selectedBudgetId = value);
+                },
+              ),
+            ),
+            // Affichage d'une alerte si le budget sera dépassé
+            if (_selectedBudgetId != null && _amountController.text.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              GetBuilder<BudgetsController>(
+                builder: (controller) {
+                  final budget = controller.budgets.firstWhereOrNull(
+                    (b) => b.id == _selectedBudgetId,
+                  );
+
+                  if (budget != null) {
+                    final transactionAmount = double.tryParse(_amountController.text) ?? 0;
+                    final newSpentAmount = budget.spentAmount + transactionAmount;
+                    final isOverBudget = newSpentAmount > budget.targetAmount;
+
+                    if (isOverBudget) {
+                      final overAmount = newSpentAmount - budget.targetAmount;
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.warning, color: AppColors.error, size: 20),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Cette transaction dépassera le budget de ${overAmount.toStringAsFixed(0)} FCFA',
+                                style: TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDateSection() {
     return Card(
       child: Padding(
@@ -431,7 +624,7 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
             ),
             const SizedBox(height: 16),
             InkWell(
-              onTap: () => _selectDate(),
+              onTap: () => _selectDateTime(),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -443,7 +636,7 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
                     const Icon(Icons.calendar_today),
                     const SizedBox(width: 12),
                     Text(
-                      '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                      '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year} à ${_selectedTime.format(context)}',
                       style: Get.textTheme.bodyLarge,
                     ),
                     const Spacer(),
@@ -662,8 +855,9 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
     }
   }
 
-  Future<void> _selectDate() async {
-    final picked = await showDatePicker(
+  Future<void> _selectDateTime() async {
+    // Sélection de la date
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365 * 2)),
@@ -681,8 +875,32 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
       },
     );
 
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
+    if (pickedDate != null) {
+      // Sélection de l'heure
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: _selectedTime,
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: AppColors.primary,
+                surface: AppColors.surface,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          _selectedDate = pickedDate;
+          _selectedTime = pickedTime;
+        });
+      } else {
+        setState(() => _selectedDate = pickedDate);
+      }
     }
   }
 
@@ -698,6 +916,14 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
 
       if (_isEditing) {
         // Mise à jour
+        final combinedDateTime = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+          _selectedTime.hour,
+          _selectedTime.minute,
+        );
+
         final updatedTransaction = widget.transaction!.copyWith(
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim().isEmpty
@@ -708,13 +934,23 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
           status: _selectedStatus,
           sourceAccountId: _selectedSourceAccountId,
           destinationAccountId: _selectedDestinationAccountId,
-          transactionDate: _selectedDate,
+          categoryId: _selectedCategoryId,
+          budgetId: _selectedBudgetId,
+          transactionDate: combinedDateTime,
           updatedAt: DateTime.now(),
         );
 
         success = await controller.updateTransaction(widget.transaction!.id, updatedTransaction);
       } else {
         // Création
+        final combinedDateTime = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+          _selectedTime.hour,
+          _selectedTime.minute,
+        );
+
         final newTransaction = TransactionModel(
           id: '',
           title: _titleController.text.trim(),
@@ -726,8 +962,10 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
           status: _selectedStatus,
           sourceAccountId: _selectedSourceAccountId,
           destinationAccountId: _selectedDestinationAccountId,
+          categoryId: _selectedCategoryId,
+          budgetId: _selectedBudgetId,
           entityId: '', // Sera défini par le service
-          transactionDate: _selectedDate,
+          transactionDate: combinedDateTime,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
@@ -752,6 +990,24 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Color _getCategoryColor(dynamic color) {
+    if (color is Color) {
+      return color;
+    } else if (color is String) {
+      try {
+        // Si c'est une chaîne hexadécimale comme "FF5722" ou "#FF5722"
+        String colorStr = color.replaceAll('#', '');
+        if (colorStr.length == 6) {
+          return Color(int.parse('0xFF$colorStr'));
+        }
+        return AppColors.primary; // Couleur par défaut
+      } catch (e) {
+        return AppColors.primary; // Couleur par défaut en cas d'erreur
+      }
+    }
+    return AppColors.primary; // Couleur par défaut
   }
 
   void _showDeleteDialog() {

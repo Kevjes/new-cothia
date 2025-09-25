@@ -1,12 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/transaction_model.dart';
 import '../models/account_model.dart';
+import '../models/budget_model.dart';
 import 'account_service.dart';
+import 'budget_service.dart';
 import '../../../core/constants/app_constants.dart';
 
 class TransactionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AccountService _accountService = AccountService();
+  final BudgetService _budgetService = BudgetService();
 
   // Obtenir les transactions d'une entité
   Future<List<TransactionModel>> getTransactionsByEntity(
@@ -79,15 +82,22 @@ class TransactionService {
         throw Exception('Transaction invalide: comptes source/destination manquants');
       }
 
+      // Valider les limites budgétaires si applicable
+      final budgetValidation = await validateBudgetLimits(transaction);
+      if (!budgetValidation['valid']) {
+        throw Exception(budgetValidation['message']);
+      }
+
       final docRef = await _firestore
           .collection(AppConstants.transactionsCollection)
           .add(transaction.toFirestore());
 
       final createdTransaction = transaction.copyWith(id: docRef.id);
 
-      // Si la transaction est validée, mettre à jour les soldes des comptes
+      // Si la transaction est validée, mettre à jour les soldes des comptes et budgets
       if (transaction.status == TransactionStatus.validated) {
         await _updateAccountBalances(createdTransaction);
+        await _updateBudgetAmounts(createdTransaction);
       }
 
       return createdTransaction;
@@ -132,8 +142,9 @@ class TransactionService {
 
       await updateTransaction(validatedTransaction);
 
-      // Mettre à jour les soldes des comptes
+      // Mettre à jour les soldes des comptes et budgets
       await _updateAccountBalances(validatedTransaction);
+      await _updateBudgetAmounts(validatedTransaction);
 
       return validatedTransaction;
     } catch (e) {
@@ -153,9 +164,10 @@ class TransactionService {
         throw Exception('Transaction déjà annulée');
       }
 
-      // Si la transaction était validée, restaurer les soldes
+      // Si la transaction était validée, restaurer les soldes des comptes et budgets
       if (transaction.status == TransactionStatus.validated) {
         await _revertAccountBalances(transaction);
+        await _revertBudgetAmounts(transaction);
       }
 
       // Mettre à jour le statut
@@ -180,9 +192,10 @@ class TransactionService {
         throw Exception('Transaction non trouvée');
       }
 
-      // Si la transaction était validée, restaurer les soldes
+      // Si la transaction était validée, restaurer les soldes des comptes et budgets
       if (transaction.status == TransactionStatus.validated) {
         await _revertAccountBalances(transaction);
+        await _revertBudgetAmounts(transaction);
       }
 
       await _firestore
@@ -251,6 +264,101 @@ class TransactionService {
         accountId: accountId,
         newBalance: newBalance,
       );
+    }
+  }
+
+  // Mettre à jour les montants des budgets après une transaction
+  Future<void> _updateBudgetAmounts(TransactionModel transaction) async {
+    // Si la transaction n'est pas liée à un budget, ne rien faire
+    if (transaction.budgetId == null) return;
+
+    try {
+      final budget = await _budgetService.getBudgetById(transaction.budgetId!);
+      if (budget == null) return;
+
+      // Pour les budgets de dépense (expense), ajouter le montant au spentAmount
+      if (budget.type == BudgetType.expense &&
+          (transaction.type == TransactionType.expense ||
+           (transaction.type == TransactionType.transfer && transaction.sourceAccountId != null))) {
+        await _budgetService.addExpenseToBudget(transaction.budgetId!, transaction.amount);
+      }
+
+      // Pour les budgets d'épargne (saving), ajouter au currentAmount si c'est un revenu ou un transfert vers épargne
+      else if (budget.type == BudgetType.saving &&
+               (transaction.type == TransactionType.income ||
+                (transaction.type == TransactionType.transfer && transaction.destinationAccountId != null))) {
+        await _budgetService.addExpenseToBudget(transaction.budgetId!, transaction.amount);
+      }
+    } catch (e) {
+      // Log l'erreur mais ne pas faire échouer la transaction
+      print('Erreur lors de la mise à jour du budget: $e');
+    }
+  }
+
+  // Restaurer les montants des budgets après annulation d'une transaction
+  Future<void> _revertBudgetAmounts(TransactionModel transaction) async {
+    // Si la transaction n'est pas liée à un budget, ne rien faire
+    if (transaction.budgetId == null) return;
+
+    try {
+      final budget = await _budgetService.getBudgetById(transaction.budgetId!);
+      if (budget == null) return;
+
+      // Pour les budgets de dépense, retirer le montant du spentAmount
+      if (budget.type == BudgetType.expense &&
+          (transaction.type == TransactionType.expense ||
+           (transaction.type == TransactionType.transfer && transaction.sourceAccountId != null))) {
+        await _budgetService.removeExpenseFromBudget(transaction.budgetId!, transaction.amount);
+      }
+
+      // Pour les budgets d'épargne, retirer du currentAmount
+      else if (budget.type == BudgetType.saving &&
+               (transaction.type == TransactionType.income ||
+                (transaction.type == TransactionType.transfer && transaction.destinationAccountId != null))) {
+        await _budgetService.removeExpenseFromBudget(transaction.budgetId!, transaction.amount);
+      }
+    } catch (e) {
+      // Log l'erreur mais ne pas faire échouer l'annulation
+      print('Erreur lors de la restauration du budget: $e');
+    }
+  }
+
+  // Valider les limites budgétaires avant création/validation d'une transaction
+  Future<Map<String, dynamic>> validateBudgetLimits(TransactionModel transaction) async {
+    // Si pas de budget associé, autoriser
+    if (transaction.budgetId == null) {
+      return {'valid': true, 'message': 'Aucun budget associé'};
+    }
+
+    try {
+      final budget = await _budgetService.getBudgetById(transaction.budgetId!);
+      if (budget == null) {
+        return {'valid': true, 'message': 'Budget non trouvé'};
+      }
+
+      // Pour les budgets de dépense, vérifier qu'on ne dépasse pas la limite
+      if (budget.type == BudgetType.expense &&
+          (transaction.type == TransactionType.expense ||
+           (transaction.type == TransactionType.transfer && transaction.sourceAccountId != null))) {
+
+        final newSpentAmount = budget.spentAmount + transaction.amount;
+        if (newSpentAmount > budget.targetAmount) {
+          final overAmount = newSpentAmount - budget.targetAmount;
+          return {
+            'valid': false,
+            'message': 'Budget "${budget.name}" sera dépassé de ${overAmount.toStringAsFixed(0)} FCFA',
+            'budgetName': budget.name,
+            'currentSpent': budget.spentAmount,
+            'limit': budget.targetAmount,
+            'transactionAmount': transaction.amount,
+            'overAmount': overAmount,
+          };
+        }
+      }
+
+      return {'valid': true, 'message': 'Limites respectées'};
+    } catch (e) {
+      return {'valid': true, 'message': 'Erreur validation: $e'};
     }
   }
 

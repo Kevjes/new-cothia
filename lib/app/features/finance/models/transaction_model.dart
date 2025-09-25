@@ -54,6 +54,7 @@ class TransactionModel {
   final String? categoryId;           // Catégorie optionnelle
   final String? budgetId;            // Budget lié optionnel
   final String? projectId;           // Projet lié optionnel
+  final String? taskId;              // Tâche liée optionnelle
   final DateTime transactionDate;
   final DateTime? scheduledDate;     // Pour transactions planifiées
   final bool isRecurring;
@@ -76,6 +77,7 @@ class TransactionModel {
     this.categoryId,
     this.budgetId,
     this.projectId,
+    this.taskId,
     required this.transactionDate,
     this.scheduledDate,
     this.isRecurring = false,
@@ -269,6 +271,7 @@ class TransactionModel {
     String? categoryId,
     String? budgetId,
     String? projectId,
+    String? taskId,
     DateTime? transactionDate,
     DateTime? scheduledDate,
     bool? isRecurring,
@@ -291,6 +294,7 @@ class TransactionModel {
       categoryId: categoryId ?? this.categoryId,
       budgetId: budgetId ?? this.budgetId,
       projectId: projectId ?? this.projectId,
+      taskId: taskId ?? this.taskId,
       transactionDate: transactionDate ?? this.transactionDate,
       scheduledDate: scheduledDate ?? this.scheduledDate,
       isRecurring: isRecurring ?? this.isRecurring,

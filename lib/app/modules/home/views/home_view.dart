@@ -120,7 +120,7 @@ class HomeView extends GetView<HomeController> {
             subtitle: 'Gérer vos tâches',
             icon: Icons.task_alt,
             color: AppColors.success,
-            onTap: () => Get.snackbar('Info', 'Module Tâches - En développement'),
+            onTap: () => Get.toNamed(Routes.TASKS),
           ),
           _buildModuleCard(
             title: 'Habitudes',

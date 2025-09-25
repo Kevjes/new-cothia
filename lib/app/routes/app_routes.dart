@@ -24,6 +24,20 @@ abstract class Routes {
   static const FINANCE_OBJECTIVES = _Paths.FINANCE_OBJECTIVES;
   static const FINANCE_ANALYTICS = _Paths.FINANCE_ANALYTICS;
   static const FINANCE_AUTOMATION = _Paths.FINANCE_AUTOMATION;
+
+  // Tasks module routes
+  static const TASKS = _Paths.TASKS;
+  static const TASKS_LIST = _Paths.TASKS_LIST;
+  static const TASKS_CREATE = _Paths.TASKS_CREATE;
+  static const TASKS_EDIT = _Paths.TASKS_EDIT;
+  static const TASKS_DETAILS = _Paths.TASKS_DETAILS;
+  static const TASKS_PROJECTS = _Paths.TASKS_PROJECTS;
+  static const TASKS_PROJECT_CREATE = _Paths.TASKS_PROJECT_CREATE;
+  static const TASKS_PROJECT_EDIT = _Paths.TASKS_PROJECT_EDIT;
+  static const TASKS_PROJECT_DETAILS = _Paths.TASKS_PROJECT_DETAILS;
+  static const TASKS_CATEGORIES = _Paths.TASKS_CATEGORIES;
+  static const TASKS_CATEGORY_CREATE = _Paths.TASKS_CATEGORY_CREATE;
+  static const TASKS_ANALYTICS = _Paths.TASKS_ANALYTICS;
 }
 
 abstract class _Paths {
@@ -49,4 +63,18 @@ abstract class _Paths {
   static const FINANCE_OBJECTIVES = '/finance/objectives';
   static const FINANCE_ANALYTICS = '/finance/analytics';
   static const FINANCE_AUTOMATION = '/finance/automation';
+
+  // Tasks module paths
+  static const TASKS = '/tasks';
+  static const TASKS_LIST = '/tasks/list';
+  static const TASKS_CREATE = '/tasks/create';
+  static const TASKS_EDIT = '/tasks/edit';
+  static const TASKS_DETAILS = '/tasks/details';
+  static const TASKS_PROJECTS = '/tasks/projects';
+  static const TASKS_PROJECT_CREATE = '/tasks/projects/create';
+  static const TASKS_PROJECT_EDIT = '/tasks/projects/edit';
+  static const TASKS_PROJECT_DETAILS = '/tasks/projects/details';
+  static const TASKS_CATEGORIES = '/tasks/categories';
+  static const TASKS_CATEGORY_CREATE = '/tasks/categories/create';
+  static const TASKS_ANALYTICS = '/tasks/analytics';
 }

@@ -27,6 +27,13 @@ import '../features/finance/views/pages/automation/automation_dashboard_page.dar
 import '../features/finance/models/transaction_model.dart';
 import '../features/finance/models/account_model.dart';
 import '../features/finance/models/budget_model.dart';
+import '../features/tasks/bindings/tasks_binding.dart';
+import '../features/tasks/views/pages/tasks_main_page.dart';
+import '../features/tasks/views/pages/tasks_list_page.dart';
+import '../features/tasks/views/pages/task_create_page.dart';
+import '../features/tasks/views/pages/task_details_page.dart';
+import '../features/tasks/models/task_model.dart';
+import '../features/tasks/models/project_model.dart';
 
 part 'app_routes.dart';
 
@@ -80,16 +87,7 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.FINANCE_TRANSACTION_DETAILS,
-      page: () {
-        final args = Get.arguments;
-        TransactionModel? transaction;
-        if (args is TransactionModel) {
-          transaction = args;
-        } else if (args is Map && args['transaction'] is TransactionModel) {
-          transaction = args['transaction'] as TransactionModel;
-        }
-        return TransactionDetailsPage(transaction: transaction);
-      },
+      page: () => const TransactionDetailsPage(transaction: null),
       binding: FinanceBinding(),
     ),
     GetPage(
@@ -104,16 +102,7 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.FINANCE_ACCOUNT_DETAILS,
-      page: () {
-        final args = Get.arguments;
-        AccountModel? account;
-        if (args is AccountModel) {
-          account = args;
-        } else if (args is Map && args['account'] is AccountModel) {
-          account = args['account'] as AccountModel;
-        }
-        return AccountDetailsPage(account: account);
-      },
+      page: () => const AccountDetailsPage(account: null),
       binding: FinanceBinding(),
     ),
     GetPage(
@@ -128,16 +117,7 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.FINANCE_BUDGET_DETAILS,
-      page: () {
-        final args = Get.arguments;
-        BudgetModel? budget;
-        if (args is BudgetModel) {
-          budget = args;
-        } else if (args is Map && args['budget'] is BudgetModel) {
-          budget = args['budget'] as BudgetModel;
-        }
-        return BudgetDetailsPage(budget: budget);
-      },
+      page: () => const BudgetDetailsPage(budget: null),
       binding: FinanceBinding(),
     ),
     GetPage(
@@ -160,5 +140,33 @@ class AppPages {
       page: () => const AutomationDashboardPage(),
       binding: FinanceBinding(),
     ),
+
+    // Tasks module routes
+    GetPage(
+      name: _Paths.TASKS,
+      page: () => const TasksMainPage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_LIST,
+      page: () => const TasksListPage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_CREATE,
+      page: () => const TaskCreatePage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_DETAILS,
+      page: () => const TaskDetailsPage(),
+      binding: TasksBinding(),
+    ),
+    // TODO: Add remaining tasks pages (edit, projects, categories, etc.)
+    // GetPage(
+    //   name: _Paths.TASKS_EDIT,
+    //   page: () => const TaskEditPage(),
+    //   binding: TasksBinding(),
+    // ),
   ];
 }

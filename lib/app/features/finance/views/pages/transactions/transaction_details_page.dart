@@ -265,6 +265,37 @@ class TransactionDetailsPage extends StatelessWidget {
                 Icons.update,
               ),
             ],
+
+            // Liaison avec projet et tâche
+            if (transaction!.projectId != null || transaction!.taskId != null) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                'Liaisons',
+                style: Get.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              if (transaction!.projectId != null)
+                _buildInfoRow(
+                  'Projet lié',
+                  transaction!.projectId!, // TODO: Récupérer le nom du projet réel
+                  Icons.folder_special,
+                ),
+
+              if (transaction!.taskId != null) ...[
+                if (transaction!.projectId != null) const SizedBox(height: 12),
+                _buildInfoRow(
+                  'Tâche liée',
+                  transaction!.taskId!, // TODO: Récupérer le nom de la tâche réelle
+                  Icons.task_alt,
+                ),
+              ],
+            ],
           ],
         ),
       ),

@@ -11,6 +11,7 @@ class EntitiesController extends GetxController {
   final _isLoading = false.obs;
   final _entities = <EntityModel>[].obs;
   final _currentEntity = Rxn<EntityModel>();
+  final _selectedEntityId = ''.obs;
   final _hasError = false.obs;
   final _errorMessage = ''.obs;
 
@@ -18,6 +19,8 @@ class EntitiesController extends GetxController {
   bool get isLoading => _isLoading.value;
   List<EntityModel> get entities => _entities;
   EntityModel? get currentEntity => _currentEntity.value;
+  RxString get selectedEntityId => _selectedEntityId;
+  EntityModel? get personalEntity => _entities.where((e) => e.isPersonal).firstOrNull;
   bool get hasError => _hasError.value;
   String get errorMessage => _errorMessage.value;
 
@@ -48,6 +51,7 @@ class EntitiesController extends GetxController {
       final personalEntity = entitiesList.where((e) => e.isPersonal).firstOrNull;
       if (personalEntity != null) {
         _currentEntity.value = personalEntity;
+        _selectedEntityId.value = personalEntity.id;
       }
     } catch (e) {
       _hasError.value = true;
@@ -187,6 +191,15 @@ class EntitiesController extends GetxController {
 
   void selectEntity(EntityModel entity) {
     _currentEntity.value = entity;
+    _selectedEntityId.value = entity.id;
+  }
+
+  void setSelectedEntity(String entityId) {
+    _selectedEntityId.value = entityId;
+    final entity = _entities.firstWhereOrNull((e) => e.id == entityId);
+    if (entity != null) {
+      _currentEntity.value = entity;
+    }
   }
 
   // Statistics methods

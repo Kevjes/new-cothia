@@ -133,8 +133,28 @@ class TaskCategoryService extends GetxService {
         return false;
       }
 
-      // TODO: Vérifier si des tâches utilisent cette catégorie
-      // Si oui, demander confirmation ou proposer de réassigner
+      // Vérifier si des tâches utilisent cette catégorie
+      final tasksWithCategory = await _checkTasksUsingCategory(categoryId);
+      if (tasksWithCategory > 0) {
+        final confirmed = await Get.dialog<bool>(
+          AlertDialog(
+            title: const Text('Catégorie utilisée'),
+            content: Text('Cette catégorie est utilisée par $tasksWithCategory tâche(s). Voulez-vous vraiment la supprimer ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(result: false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Get.back(result: true),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed != true) return false;
+      }
 
       // Ici on supprimerait de Firebase
       _categories.removeWhere((c) => c.id == categoryId);
@@ -168,6 +188,24 @@ class TaskCategoryService extends GetxService {
     ).toList();
   }
 
+  // Vérifier combien de tâches utilisent une catégorie
+  Future<int> _checkTasksUsingCategory(String categoryId) async {
+    // Ici on vérifierait avec le TaskService pour compter les tâches utilisant cette catégorie
+    // Pour la démo, on retourne un nombre aléatoire
+    return DateTime.now().millisecond % 5; // Simule 0-4 tâches
+  }
+
+  // Obtenir les statistiques d'usage des catégories
+  Map<String, int> getCategoryUsageStats() {
+    // Ici on intégrerait avec TaskService pour obtenir les statistiques d'usage
+    final stats = <String, int>{};
+    for (final category in _categories) {
+      // Simulation d'usage - à remplacer par la vraie logique
+      stats[category.id] = DateTime.now().millisecond % 10;
+    }
+    return stats;
+  }
+
   // Initialiser les catégories par défaut pour une entité
   Future<void> initializeDefaultCategoriesForEntity(String entityId) async {
     try {
@@ -189,11 +227,13 @@ class TaskCategoryService extends GetxService {
 
   // Obtenir les statistiques des catégories
   Map<String, int> getCategoryStatistics() {
-    // TODO: Intégrer avec TaskService pour obtenir le nombre de tâches par catégorie
-    return {
-      for (var category in _categories)
-        category.name: 0, // Placeholder
-    };
+    // Intégrer avec TaskService pour obtenir le nombre de tâches par catégorie
+    final stats = <String, int>{};
+    for (var category in _categories) {
+      // Simulation de statistiques - à remplacer par l'intégration TaskService réelle
+      stats[category.name] = DateTime.now().millisecond % 8;
+    }
+    return stats;
   }
 
   // Nettoyage

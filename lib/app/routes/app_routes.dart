@@ -37,6 +37,9 @@ abstract class Routes {
   static const TASKS_PROJECT_DETAILS = _Paths.TASKS_PROJECT_DETAILS;
   static const TASKS_CATEGORIES = _Paths.TASKS_CATEGORIES;
   static const TASKS_CATEGORY_CREATE = _Paths.TASKS_CATEGORY_CREATE;
+  static const TASKS_CATEGORY_EDIT = _Paths.TASKS_CATEGORY_EDIT;
+  static const TASKS_TAGS = _Paths.TASKS_TAGS;
+  static const TASKS_RECURRING = _Paths.TASKS_RECURRING;
   static const TASKS_ANALYTICS = _Paths.TASKS_ANALYTICS;
 }
 
@@ -76,5 +79,8 @@ abstract class _Paths {
   static const TASKS_PROJECT_DETAILS = '/tasks/projects/details';
   static const TASKS_CATEGORIES = '/tasks/categories';
   static const TASKS_CATEGORY_CREATE = '/tasks/categories/create';
+  static const TASKS_CATEGORY_EDIT = '/tasks/categories/edit';
+  static const TASKS_TAGS = '/tasks/tags';
+  static const TASKS_RECURRING = '/tasks/recurring';
   static const TASKS_ANALYTICS = '/tasks/analytics';
 }

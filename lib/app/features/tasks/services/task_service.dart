@@ -12,6 +12,11 @@ class TaskService extends GetxService {
   // Getters
   List<TaskModel> get tasks => _tasks;
 
+  // Setter pour permettre la modification de la liste (pour le tri)
+  set tasks(List<TaskModel> newTasks) {
+    _tasks.assignAll(newTasks);
+  }
+
   List<TaskModel> get activeTasks => _tasks.where((task) =>
     task.status != TaskStatus.completed && task.status != TaskStatus.cancelled).toList();
 

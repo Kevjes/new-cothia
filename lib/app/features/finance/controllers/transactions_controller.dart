@@ -314,6 +314,36 @@ class TransactionsController extends GetxController {
     }
   }
 
+  // Confirmer une transaction (pour la synchronisation avec les tâches)
+  Future<bool> confirmTransaction(String transactionId) async {
+    try {
+      _isLoading.value = true;
+
+      // Récupérer la transaction
+      final transaction = _transactions.firstWhereOrNull((t) => t.id == transactionId);
+      if (transaction == null) {
+        throw Exception('Transaction introuvable');
+      }
+
+      // Confirmer la transaction en changeant son statut
+      final confirmedTransaction = transaction.copyWith(
+        status: TransactionStatus.validated,
+        updatedAt: DateTime.now(),
+      );
+
+      await _transactionService.updateTransaction(confirmedTransaction);
+      await loadTransactions();
+      await loadAccounts();
+
+      return true;
+    } catch (e) {
+      // Log error silently
+      return false;
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
   Future<bool> duplicateTransaction(TransactionModel transaction) async {
     final duplicated = transaction.copyWith(
       id: '',

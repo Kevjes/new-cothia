@@ -197,3 +197,4 @@ UI: Pour chaque Module (exemple du module finance) ou sous module (Exemple du so
 UI : Chaque module doit avoir un drawer avec le Menu etant la liste de ses sous modules
 UI : Utiliser des pages pour les CRUD et non des ModalSheets ou Dialogs et se rassurer qu’apres validation, la page du formulaire se ferme pour nous renvoyer a la page précédent,
 UI: Se rassurer que les formulaires sont intuitifs moderne et User friendly
+- toujours utiliser AppRoutes . A la place de Get.toNamed("/tasks"), utiliser AppRoutes comme suit : Get.toNamed(AppRoutes.TASKS)

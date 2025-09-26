@@ -124,7 +124,7 @@ class _TasksListPageState extends State<TasksListPage> {
             itemCount: filters.length,
             itemBuilder: (context, index) {
               final filter = filters[index];
-              final isSelected = controller.selectedFilter.value == filter['key'];
+              final isSelected = _controller.selectedFilter.value == filter['key'];
 
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -149,7 +149,7 @@ class _TasksListPageState extends State<TasksListPage> {
                   ),
                   selected: isSelected,
                   onSelected: (selected) {
-                    controller.setFilter(filter['key'] as String);
+                    _controller.setFilter(filter['key'] as String);
                   },
                   selectedColor: AppColors.primary,
                   backgroundColor: AppColors.surface,
@@ -166,11 +166,11 @@ class _TasksListPageState extends State<TasksListPage> {
   Widget _buildTasksList() {
     return GetBuilder<TasksController>(
       builder: (controller) {
-        if (controller.isLoading.value) {
+        if (_controller.isLoading.value) {
           return _buildShimmerList();
         }
 
-        final tasks = controller.tasks;
+        final tasks = _controller.tasks;
 
         if (tasks.isEmpty) {
           return _buildEmptyState();
@@ -226,7 +226,7 @@ class _TasksListPageState extends State<TasksListPage> {
         IconData icon;
         Color color;
 
-        switch (controller.selectedFilter.value) {
+        switch (_controller.selectedFilter.value) {
           case 'today':
             title = 'Aucune tâche pour aujourd\'hui';
             subtitle = 'Profitez de votre journée libre !';
@@ -277,7 +277,7 @@ class _TasksListPageState extends State<TasksListPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
-                if (controller.selectedFilter.value == 'all')
+                if (_controller.selectedFilter.value == 'all')
                   ElevatedButton.icon(
                     onPressed: () => Get.toNamed('/tasks/create'),
                     icon: const Icon(Icons.add),
@@ -352,47 +352,280 @@ class _TasksListPageState extends State<TasksListPage> {
   }
 
   void _showSortMenu() {
-    // TODO: Implémenter le menu de tri
-    Get.snackbar(
-      'Bientôt disponible',
-      'Les options de tri seront disponibles bientôt',
-      snackPosition: SnackPosition.BOTTOM,
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Trier par',
+              style: Get.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.access_time),
+              title: const Text('Date de création'),
+              onTap: () {
+                Get.back();
+                _controller.sortTasks('createdAt');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.date_range),
+              title: const Text('Date d\'échéance'),
+              onTap: () {
+                Get.back();
+                _controller.sortTasks('dueDate');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.priority_high),
+              title: const Text('Priorité'),
+              onTap: () {
+                Get.back();
+                _controller.sortTasks('priority');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.sort_by_alpha),
+              title: const Text('Nom (A-Z)'),
+              onTap: () {
+                Get.back();
+                _controller.sortTasks('title');
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showPriorityFilter() {
-    // TODO: Implémenter le filtre par priorité
-    Get.snackbar(
-      'Filtre priorité',
-      'Filtre par priorité bientôt disponible',
-      snackPosition: SnackPosition.BOTTOM,
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Filtrer par priorité',
+              style: Get.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Icon(Icons.clear, color: AppColors.hint),
+              title: const Text('Toutes les priorités'),
+              onTap: () {
+                Get.back();
+                _controller.filterByPriority(null);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.keyboard_double_arrow_up, color: AppColors.error),
+              title: const Text('Haute'),
+              onTap: () {
+                Get.back();
+                _controller.filterByPriority(TaskPriority.high);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.keyboard_arrow_up, color: AppColors.warning),
+              title: const Text('Moyenne'),
+              onTap: () {
+                Get.back();
+                _controller.filterByPriority(TaskPriority.medium);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.keyboard_arrow_down, color: AppColors.success),
+              title: const Text('Basse'),
+              onTap: () {
+                Get.back();
+                _controller.filterByPriority(TaskPriority.low);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showStatusFilter() {
-    // TODO: Implémenter le filtre par statut
-    Get.snackbar(
-      'Filtre statut',
-      'Filtre par statut bientôt disponible',
-      snackPosition: SnackPosition.BOTTOM,
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Filtrer par statut',
+              style: Get.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Icon(Icons.clear, color: AppColors.hint),
+              title: const Text('Tous les statuts'),
+              onTap: () {
+                Get.back();
+                _controller.filterByStatus(null);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.schedule, color: AppColors.warning),
+              title: const Text('En attente'),
+              onTap: () {
+                Get.back();
+                _controller.filterByStatus(TaskStatus.pending);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.play_arrow, color: AppColors.primary),
+              title: const Text('En cours'),
+              onTap: () {
+                Get.back();
+                _controller.filterByStatus(TaskStatus.inProgress);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.check_circle, color: AppColors.success),
+              title: const Text('Terminées'),
+              onTap: () {
+                Get.back();
+                _controller.filterByStatus(TaskStatus.completed);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.cancel, color: AppColors.error),
+              title: const Text('Annulées'),
+              onTap: () {
+                Get.back();
+                _controller.filterByStatus(TaskStatus.cancelled);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showDateFilter() {
-    // TODO: Implémenter le filtre par date
-    Get.snackbar(
-      'Filtre date',
-      'Filtre par date bientôt disponible',
-      snackPosition: SnackPosition.BOTTOM,
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Filtrer par date',
+              style: Get.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Icon(Icons.clear, color: AppColors.hint),
+              title: const Text('Toutes les dates'),
+              onTap: () {
+                Get.back();
+                _controller.filterByDate(null);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.today, color: AppColors.primary),
+              title: const Text('Aujourd\'hui'),
+              onTap: () {
+                Get.back();
+                _controller.filterByDate('today');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.date_range, color: AppColors.secondary),
+              title: const Text('Cette semaine'),
+              onTap: () {
+                Get.back();
+                _controller.filterByDate('week');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.warning, color: AppColors.error),
+              title: const Text('En retard'),
+              onTap: () {
+                Get.back();
+                _controller.filterByDate('overdue');
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showProjectFilter() {
-    // TODO: Implémenter le filtre par projet
-    Get.snackbar(
-      'Filtre projet',
-      'Filtre par projet bientôt disponible',
-      snackPosition: SnackPosition.BOTTOM,
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Filtrer par projet',
+              style: Get.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Icon(Icons.clear, color: AppColors.hint),
+              title: const Text('Tous les projets'),
+              onTap: () {
+                Get.back();
+                _controller.filterByProject(null);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.inbox, color: AppColors.hint),
+              title: const Text('Sans projet'),
+              onTap: () {
+                Get.back();
+                _controller.filterByProject('none');
+              },
+            ),
+            GetBuilder<TasksController>(
+              builder: (controller) {
+                return Column(
+                  children: _controller.projects.map((project) {
+                    return ListTile(
+                      leading: Icon(Icons.folder, color: AppColors.primary),
+                      title: Text(project.name),
+                      onTap: () {
+                        Get.back();
+                        _controller.filterByProject(project.id);
+                      },
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 

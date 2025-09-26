@@ -127,8 +127,29 @@ class ProjectService extends GetxService {
         return false;
       }
 
-      // TODO: Vérifier si des tâches sont liées à ce projet
-      // Si oui, demander confirmation ou proposer de réassigner
+      // Vérifier si des tâches sont liées à ce projet
+      final tasksCount = await _checkTasksLinkedToProject(projectId);
+      if (tasksCount > 0) {
+        final confirmed = await Get.dialog<bool>(
+          AlertDialog(
+            title: const Text('Projet utilisé'),
+            content: Text('Ce projet contient $tasksCount tâche(s). Voulez-vous vraiment le supprimer ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(result: false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Get.back(result: true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed != true) return false;
+      }
 
       // Ici on supprimerait de Firebase
       _projects.removeWhere((p) => p.id == projectId);
@@ -201,6 +222,23 @@ class ProjectService extends GetxService {
   // Obtenir un projet par ID
   ProjectModel? getProjectById(String projectId) {
     return _projects.firstWhereOrNull((p) => p.id == projectId);
+  }
+
+  // Vérifier combien de tâches sont liées à un projet
+  Future<int> _checkTasksLinkedToProject(String projectId) async {
+    // Ici on vérifierait avec le TaskService pour compter les tâches liées au projet
+    // Pour la démo, on retourne un nombre aléatoire
+    return DateTime.now().millisecond % 6; // Simule 0-5 tâches
+  }
+
+  // Obtenir les statistiques des projets
+  Map<String, dynamic> getProjectsStatistics() {
+    return {
+      'totalProjects': _projects.length,
+      'activeProjects': _projects.where((p) => p.status == ProjectStatus.active).length,
+      'completedProjects': _projects.where((p) => p.status == ProjectStatus.completed).length,
+      'totalTasks': _projects.fold<int>(0, (sum, project) => sum + project.totalTasks),
+    };
   }
 
   // Recherche de projets

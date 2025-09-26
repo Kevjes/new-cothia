@@ -24,16 +24,21 @@ import '../features/finance/views/pages/categories/categories_list_page.dart';
 import '../features/finance/views/pages/objectives/objectives_list_page.dart';
 import '../features/finance/views/pages/analytics/finance_analytics_page.dart';
 import '../features/finance/views/pages/automation/automation_dashboard_page.dart';
-import '../features/finance/models/transaction_model.dart';
-import '../features/finance/models/account_model.dart';
-import '../features/finance/models/budget_model.dart';
 import '../features/tasks/bindings/tasks_binding.dart';
 import '../features/tasks/views/pages/tasks_main_page.dart';
 import '../features/tasks/views/pages/tasks_list_page.dart';
 import '../features/tasks/views/pages/task_create_page.dart';
 import '../features/tasks/views/pages/task_details_page.dart';
-import '../features/tasks/models/task_model.dart';
-import '../features/tasks/models/project_model.dart';
+import '../features/tasks/views/pages/projects/projects_list_page.dart';
+import '../features/tasks/views/pages/projects/project_create_page.dart';
+import '../features/tasks/views/pages/projects/project_details_page.dart';
+import '../features/tasks/views/pages/projects/project_edit_page.dart';
+import '../features/tasks/views/pages/categories/categories_list_page.dart';
+import '../features/tasks/views/pages/categories/category_create_page.dart';
+import '../features/tasks/views/pages/categories/category_edit_page.dart';
+import '../features/tasks/views/pages/tags/tags_list_page.dart';
+import '../features/tasks/views/pages/recurring/recurring_tasks_page.dart';
+import '../features/tasks/views/pages/analytics/tasks_analytics_page.dart';
 
 part 'app_routes.dart';
 
@@ -162,7 +167,63 @@ class AppPages {
       page: () => const TaskDetailsPage(),
       binding: TasksBinding(),
     ),
-    // TODO: Add remaining tasks pages (edit, projects, categories, etc.)
+
+    // Projects routes
+    GetPage(
+      name: _Paths.TASKS_PROJECTS,
+      page: () => const ProjectsListPage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_PROJECT_CREATE,
+      page: () => const ProjectCreatePage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_PROJECT_DETAILS,
+      page: () => const ProjectDetailsPage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_PROJECT_EDIT,
+      page: () => const ProjectEditPage(),
+      binding: TasksBinding(),
+    ),
+
+    // Categories routes
+    GetPage(
+      name: _Paths.TASKS_CATEGORIES,
+      page: () => const TaskCategoriesListPage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_CATEGORY_CREATE,
+      page: () => const TaskCategoryCreatePage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_CATEGORY_EDIT,
+      page: () => const TaskCategoryEditPage(),
+      binding: TasksBinding(),
+    ),
+
+    // Tags and Recurring Tasks routes
+    GetPage(
+      name: _Paths.TASKS_TAGS,
+      page: () => const TagsListPage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_RECURRING,
+      page: () => const RecurringTasksPage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_ANALYTICS,
+      page: () => const TasksAnalyticsPage(),
+      binding: TasksBinding(),
+    ),
+    // TODO: Add remaining tasks pages (edit, etc.)
     // GetPage(
     //   name: _Paths.TASKS_EDIT,
     //   page: () => const TaskEditPage(),

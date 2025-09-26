@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../controllers/tasks_controller.dart';
 import '../../controllers/projects_controller.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_pages.dart';
 import '../../models/task_model.dart';
 import '../../models/project_model.dart';
 
@@ -110,7 +111,7 @@ class TasksOverviewPage extends StatelessWidget {
                 AppColors.primary,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildStatCard(
                 'En cours',
@@ -119,7 +120,7 @@ class TasksOverviewPage extends StatelessWidget {
                 AppColors.secondary,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildStatCard(
                 'Terminées',
@@ -128,7 +129,7 @@ class TasksOverviewPage extends StatelessWidget {
                 AppColors.success,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildStatCard(
                 'En retard',
@@ -221,6 +222,31 @@ class TasksOverviewPage extends StatelessWidget {
                 Icons.folder_special,
                 AppColors.orange,
                 () => Get.toNamed('/tasks/projects'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionButton(
+                'Gérer Catégories',
+                Icons.category,
+                Colors.purple,
+                () => Get.toNamed('/tasks/categories'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionButton(
+                'Analyses',
+                Icons.analytics,
+                Colors.teal,
+                () {
+                  // Navigate to analytics page
+                  Get.toNamed(Routes.TASKS_ANALYTICS);
+                },
               ),
             ),
           ],

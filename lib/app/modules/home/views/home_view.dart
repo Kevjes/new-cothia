@@ -555,7 +555,7 @@ class HomeView extends GetView<HomeController> {
               subtitle: 'Suivi des habitudes',
               icon: Icons.trending_up,
               color: AppColors.info,
-              onTap: () => Get.snackbar('Info', 'Module Habitudes - En développement'),
+              onTap: () => Get.toNamed(Routes.HABITS),
             ),
           ],
         ),

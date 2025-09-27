@@ -42,6 +42,18 @@ abstract class Routes {
   static const TASKS_TAGS = _Paths.TASKS_TAGS;
   static const TASKS_RECURRING = _Paths.TASKS_RECURRING;
   static const TASKS_ANALYTICS = _Paths.TASKS_ANALYTICS;
+
+  // Habits module routes
+  static const HABITS = _Paths.HABITS;
+  static const HABITS_LIST = _Paths.HABITS_LIST;
+  static const HABITS_CREATE = _Paths.HABITS_CREATE;
+  static const HABITS_EDIT = _Paths.HABITS_EDIT;
+  static const HABITS_DETAILS = _Paths.HABITS_DETAILS;
+  static const HABITS_ROUTINES = _Paths.HABITS_ROUTINES;
+  static const HABITS_ROUTINES_CREATE = _Paths.HABITS_ROUTINES_CREATE;
+  static const HABITS_ROUTINES_EDIT = _Paths.HABITS_ROUTINES_EDIT;
+  static const HABITS_ROUTINES_DETAILS = _Paths.HABITS_ROUTINES_DETAILS;
+  static const HABITS_ROUTINES_START = _Paths.HABITS_ROUTINES_START;
 }
 
 abstract class _Paths {
@@ -85,4 +97,16 @@ abstract class _Paths {
   static const TASKS_TAGS = '/tasks/tags';
   static const TASKS_RECURRING = '/tasks/recurring';
   static const TASKS_ANALYTICS = '/tasks/analytics';
+
+  // Habits module paths
+  static const HABITS = '/habits';
+  static const HABITS_LIST = '/habits/list';
+  static const HABITS_CREATE = '/habits/create';
+  static const HABITS_EDIT = '/habits/edit';
+  static const HABITS_DETAILS = '/habits/details';
+  static const HABITS_ROUTINES = '/habits/routines';
+  static const HABITS_ROUTINES_CREATE = '/habits/routines/create';
+  static const HABITS_ROUTINES_EDIT = '/habits/routines/edit';
+  static const HABITS_ROUTINES_DETAILS = '/habits/routines/details';
+  static const HABITS_ROUTINES_START = '/habits/routines/start';
 }

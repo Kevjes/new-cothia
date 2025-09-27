@@ -40,6 +40,15 @@ import '../features/tasks/views/pages/categories/category_details_page.dart';
 import '../features/tasks/views/pages/tags/tags_list_page.dart';
 import '../features/tasks/views/pages/recurring/recurring_tasks_page.dart';
 import '../features/tasks/views/pages/analytics/tasks_analytics_page.dart';
+import '../features/habits/bindings/habits_binding.dart';
+import '../features/habits/views/pages/habits_main_page.dart';
+import '../features/habits/views/pages/habits_list_page.dart';
+import '../features/habits/views/pages/habit_form_page.dart';
+import '../features/habits/views/pages/habit_details_page.dart';
+import '../features/habits/views/pages/routines_list_page.dart';
+import '../features/habits/views/pages/routine_form_page.dart';
+import '../features/habits/views/pages/routine_details_page.dart';
+import '../features/habits/views/pages/routine_start_page.dart';
 
 part 'app_routes.dart';
 
@@ -229,11 +238,57 @@ class AppPages {
       page: () => const TasksAnalyticsPage(),
       binding: TasksBinding(),
     ),
-    // TODO: Add remaining tasks pages (edit, etc.)
-    // GetPage(
-    //   name: _Paths.TASKS_EDIT,
-    //   page: () => const TaskEditPage(),
-    //   binding: TasksBinding(),
-    // ),
+
+    // Habits module routes
+    GetPage(
+      name: _Paths.HABITS,
+      page: () => const HabitsMainPage(),
+      binding: HabitsBinding(),
+    ),
+    GetPage(
+      name: _Paths.HABITS_LIST,
+      page: () => const HabitsListPage(),
+      binding: HabitsBinding(),
+    ),
+    GetPage(
+      name: _Paths.HABITS_CREATE,
+      page: () => const HabitFormPage(),
+      binding: HabitsBinding(),
+    ),
+    GetPage(
+      name: _Paths.HABITS_EDIT,
+      page: () => const HabitFormPage(),
+      binding: HabitsDetailBinding(),
+    ),
+    GetPage(
+      name: _Paths.HABITS_DETAILS,
+      page: () => const HabitDetailsPage(),
+      binding: HabitsDetailBinding(),
+    ),
+    GetPage(
+      name: _Paths.HABITS_ROUTINES,
+      page: () => const RoutinesListPage(),
+      binding: HabitsBinding(),
+    ),
+    GetPage(
+      name: _Paths.HABITS_ROUTINES_CREATE,
+      page: () => const RoutineFormPage(),
+      binding: HabitsBinding(),
+    ),
+    GetPage(
+      name: _Paths.HABITS_ROUTINES_EDIT,
+      page: () => const RoutineFormPage(),
+      binding: RoutinesDetailBinding(),
+    ),
+    GetPage(
+      name: _Paths.HABITS_ROUTINES_DETAILS,
+      page: () => const RoutineDetailsPage(),
+      binding: RoutinesDetailBinding(),
+    ),
+    GetPage(
+      name: _Paths.HABITS_ROUTINES_START,
+      page: () => const RoutineStartPage(),
+      binding: RoutinesDetailBinding(),
+    ),
   ];
 }

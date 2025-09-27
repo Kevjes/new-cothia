@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/project_model.dart';
@@ -5,6 +7,9 @@ import '../../entities/controllers/entities_controller.dart';
 
 class ProjectService extends GetxService {
   static ProjectService get to => Get.find();
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Liste réactive des projets
   final RxList<ProjectModel> _projects = <ProjectModel>[].obs;
@@ -39,9 +44,20 @@ class ProjectService extends GetxService {
   // Chargement des projets
   Future<void> loadProjects() async {
     try {
-      // Ici on chargerait depuis Firebase
-      // Pour l'instant, on utilise des données de test
-      _projects.assignAll(_getMockProjects());
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final QuerySnapshot snapshot = await _firestore
+          .collection('projects')
+          .where('userId', isEqualTo: user.uid)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final List<ProjectModel> loadedProjects = snapshot.docs
+          .map((doc) => ProjectModel.fromFirestore(doc))
+          .toList();
+
+      _projects.assignAll(loadedProjects);
     } catch (e) {
       Get.snackbar('Erreur', 'Erreur lors du chargement des projets: $e');
     }
@@ -50,6 +66,12 @@ class ProjectService extends GetxService {
   // Création d'un projet
   Future<bool> createProject(ProjectModel project) async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        Get.snackbar('Erreur', 'Utilisateur non connecté');
+        return false;
+      }
+
       // Validation
       if (project.name.trim().isEmpty) {
         Get.snackbar('Erreur', 'Le nom du projet est requis');
@@ -66,15 +88,20 @@ class ProjectService extends GetxService {
         return false;
       }
 
-      // Génération d'un ID unique
+      // Génération d'un ID unique et ajout des données utilisateur
       final newProject = project.copyWith(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
-      // Ici on sauvegarderait dans Firebase
-      _projects.add(newProject);
+      // Sauvegarder dans Firebase
+      final docRef = await _firestore.collection('projects').add(newProject.toFirestore());
+      final projectWithId = newProject.copyWith(id: docRef.id);
+
+      // Mettre à jour avec l'ID généré par Firebase
+      await docRef.update({'id': docRef.id});
+
+      _projects.add(projectWithId);
 
       Get.snackbar('Succès', 'Projet créé avec succès');
       return true;
@@ -87,6 +114,12 @@ class ProjectService extends GetxService {
   // Mise à jour d'un projet
   Future<bool> updateProject(ProjectModel updatedProject) async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        Get.snackbar('Erreur', 'Utilisateur non connecté');
+        return false;
+      }
+
       final index = _projects.indexWhere((p) => p.id == updatedProject.id);
       if (index == -1) {
         Get.snackbar('Erreur', 'Projet non trouvé');
@@ -107,7 +140,12 @@ class ProjectService extends GetxService {
 
       final projectWithUpdatedTime = updatedProject.copyWith(updatedAt: DateTime.now());
 
-      // Ici on sauvegarderait dans Firebase
+      // Sauvegarder dans Firebase
+      await _firestore
+          .collection('projects')
+          .doc(updatedProject.id)
+          .update(projectWithUpdatedTime.toFirestore());
+
       _projects[index] = projectWithUpdatedTime;
 
       Get.snackbar('Succès', 'Projet mis à jour avec succès');
@@ -121,6 +159,12 @@ class ProjectService extends GetxService {
   // Suppression d'un projet
   Future<bool> deleteProject(String projectId) async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        Get.snackbar('Erreur', 'Utilisateur non connecté');
+        return false;
+      }
+
       final project = _projects.firstWhereOrNull((p) => p.id == projectId);
       if (project == null) {
         Get.snackbar('Erreur', 'Projet non trouvé');
@@ -151,7 +195,8 @@ class ProjectService extends GetxService {
         if (confirmed != true) return false;
       }
 
-      // Ici on supprimerait de Firebase
+      // Supprimer de Firebase
+      await _firestore.collection('projects').doc(projectId).delete();
       _projects.removeWhere((p) => p.id == projectId);
 
       Get.snackbar('Succès', 'Projet supprimé avec succès');
@@ -226,9 +271,21 @@ class ProjectService extends GetxService {
 
   // Vérifier combien de tâches sont liées à un projet
   Future<int> _checkTasksLinkedToProject(String projectId) async {
-    // Ici on vérifierait avec le TaskService pour compter les tâches liées au projet
-    // Pour la démo, on retourne un nombre aléatoire
-    return DateTime.now().millisecond % 6; // Simule 0-5 tâches
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return 0;
+
+      final QuerySnapshot snapshot = await _firestore
+          .collection('tasks')
+          .where('userId', isEqualTo: user.uid)
+          .where('projectId', isEqualTo: projectId)
+          .get();
+
+      return snapshot.docs.length;
+    } catch (e) {
+      print('Erreur lors de la vérification des tâches liées: $e');
+      return 0;
+    }
   }
 
   // Obtenir les statistiques des projets
@@ -273,69 +330,6 @@ class ProjectService extends GetxService {
     };
   }
 
-  // Données de test
-  List<ProjectModel> _getMockProjects() {
-    final entitiesController = Get.find<EntitiesController>();
-    final personalEntityId = entitiesController.personalEntity?.id ?? 'personal';
-    final now = DateTime.now();
-
-    return [
-      ProjectModel(
-        id: '1',
-        name: 'Refonte du site web',
-        description: 'Modernisation complète du site web de l\'entreprise',
-        status: ProjectStatus.active,
-        entityId: personalEntityId,
-        startDate: now.subtract(const Duration(days: 30)),
-        deadline: now.add(const Duration(days: 45)),
-        color: Colors.blue,
-        icon: Icons.web,
-        tags: ['web', 'design', 'développement'],
-        progressPercentage: 65.0,
-        totalTasks: 20,
-        completedTasks: 13,
-        estimatedBudget: 5000.0,
-        actualBudget: 3200.0,
-        createdAt: now.subtract(const Duration(days: 35)),
-        updatedAt: now.subtract(const Duration(hours: 4)),
-      ),
-      ProjectModel(
-        id: '2',
-        name: 'Organisation déménagement',
-        description: 'Préparation et organisation du déménagement',
-        status: ProjectStatus.planning,
-        entityId: personalEntityId,
-        deadline: now.add(const Duration(days: 60)),
-        color: Colors.orange,
-        icon: Icons.moving,
-        tags: ['déménagement', 'personnel'],
-        progressPercentage: 25.0,
-        totalTasks: 8,
-        completedTasks: 2,
-        estimatedBudget: 2000.0,
-        actualBudget: 150.0,
-        createdAt: now.subtract(const Duration(days: 10)),
-        updatedAt: now.subtract(const Duration(days: 2)),
-      ),
-      ProjectModel(
-        id: '3',
-        name: 'Formation Flutter',
-        description: 'Apprentissage approfondi du framework Flutter',
-        status: ProjectStatus.completed,
-        entityId: personalEntityId,
-        startDate: now.subtract(const Duration(days: 90)),
-        endDate: now.subtract(const Duration(days: 7)),
-        color: Colors.green,
-        icon: Icons.school,
-        tags: ['formation', 'flutter', 'développement'],
-        progressPercentage: 100.0,
-        totalTasks: 15,
-        completedTasks: 15,
-        createdAt: now.subtract(const Duration(days: 95)),
-        updatedAt: now.subtract(const Duration(days: 7)),
-      ),
-    ];
-  }
 
   // Nettoyage
   @override

@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class TaskCategoryModel {
   final String id;
+  final String userId;
   final String name;
   final String? description;
   final IconData icon;
@@ -13,6 +15,7 @@ class TaskCategoryModel {
 
   TaskCategoryModel({
     required this.id,
+    this.userId = '',
     required this.name,
     this.description,
     this.icon = Icons.category,
@@ -24,11 +27,12 @@ class TaskCategoryModel {
   });
 
   // Catégories par défaut
-  static List<TaskCategoryModel> getDefaultCategories(String entityId) {
+  static List<TaskCategoryModel> getDefaultCategories(String entityId, {String userId = ''}) {
     final now = DateTime.now();
     return [
       TaskCategoryModel(
         id: 'work',
+        userId: userId,
         name: 'Travail',
         description: 'Tâches professionnelles',
         icon: Icons.work,
@@ -40,6 +44,7 @@ class TaskCategoryModel {
       ),
       TaskCategoryModel(
         id: 'personal',
+        userId: userId,
         name: 'Personnel',
         description: 'Tâches personnelles',
         icon: Icons.person,
@@ -51,6 +56,7 @@ class TaskCategoryModel {
       ),
       TaskCategoryModel(
         id: 'health',
+        userId: userId,
         name: 'Santé',
         description: 'Tâches liées à la santé',
         icon: Icons.health_and_safety,
@@ -62,6 +68,7 @@ class TaskCategoryModel {
       ),
       TaskCategoryModel(
         id: 'education',
+        userId: userId,
         name: 'Éducation',
         description: 'Apprentissage et formation',
         icon: Icons.school,
@@ -73,6 +80,7 @@ class TaskCategoryModel {
       ),
       TaskCategoryModel(
         id: 'family',
+        userId: userId,
         name: 'Famille',
         description: 'Tâches familiales',
         icon: Icons.family_restroom,
@@ -84,6 +92,7 @@ class TaskCategoryModel {
       ),
       TaskCategoryModel(
         id: 'household',
+        userId: userId,
         name: 'Maison',
         description: 'Tâches ménagères',
         icon: Icons.home,
@@ -95,6 +104,7 @@ class TaskCategoryModel {
       ),
       TaskCategoryModel(
         id: 'finance',
+        userId: userId,
         name: 'Finances',
         description: 'Gestion financière',
         icon: Icons.attach_money,
@@ -106,6 +116,7 @@ class TaskCategoryModel {
       ),
       TaskCategoryModel(
         id: 'social',
+        userId: userId,
         name: 'Social',
         description: 'Relations sociales',
         icon: Icons.people,
@@ -117,6 +128,7 @@ class TaskCategoryModel {
       ),
       TaskCategoryModel(
         id: 'shopping',
+        userId: userId,
         name: 'Achats',
         description: 'Courses et achats',
         icon: Icons.shopping_cart,
@@ -128,6 +140,7 @@ class TaskCategoryModel {
       ),
       TaskCategoryModel(
         id: 'other',
+        userId: userId,
         name: 'Autre',
         description: 'Autres tâches',
         icon: Icons.more_horiz,
@@ -144,6 +157,7 @@ class TaskCategoryModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'userId': userId,
       'name': name,
       'description': description,
       'icon': icon.codePoint,
@@ -158,6 +172,7 @@ class TaskCategoryModel {
   static TaskCategoryModel fromJson(Map<String, dynamic> json) {
     return TaskCategoryModel(
       id: json['id'] ?? '',
+      userId: json['userId'] ?? '',
       name: json['name'] ?? '',
       description: json['description'],
       icon: IconData(json['icon'] ?? Icons.category.codePoint, fontFamily: 'MaterialIcons'),
@@ -172,6 +187,7 @@ class TaskCategoryModel {
   // Méthode copyWith
   TaskCategoryModel copyWith({
     String? id,
+    String? userId,
     String? name,
     String? description,
     IconData? icon,
@@ -183,6 +199,7 @@ class TaskCategoryModel {
   }) {
     return TaskCategoryModel(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       description: description ?? this.description,
       icon: icon ?? this.icon,
@@ -203,6 +220,16 @@ class TaskCategoryModel {
 
   @override
   int get hashCode => id.hashCode;
+
+  // Méthodes Firebase
+  Map<String, dynamic> toFirestore() {
+    return toJson();
+  }
+
+  static TaskCategoryModel fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return fromJson(data);
+  }
 
   @override
   String toString() {

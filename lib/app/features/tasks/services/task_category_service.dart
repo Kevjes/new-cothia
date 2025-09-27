@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/task_category_model.dart';
@@ -5,6 +7,9 @@ import '../../entities/controllers/entities_controller.dart';
 
 class TaskCategoryService extends GetxService {
   static TaskCategoryService get to => Get.find();
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Liste réactive des catégories
   final RxList<TaskCategoryModel> _categories = <TaskCategoryModel>[].obs;
@@ -27,23 +32,59 @@ class TaskCategoryService extends GetxService {
   // Chargement des catégories
   Future<void> loadCategories() async {
     try {
-      // Charger les catégories par défaut pour l'entité personnelle
-      final entitiesController = Get.find<EntitiesController>();
-      final personalEntityId = entitiesController.personalEntity?.id ?? 'personal';
+      final user = _auth.currentUser;
+      if (user == null) return;
 
-      // Ici on chargerait depuis Firebase
-      // Pour l'instant, on utilise les catégories par défaut
-      final defaultCategories = TaskCategoryModel.getDefaultCategories(personalEntityId);
-      _categories.assignAll(defaultCategories);
+      final QuerySnapshot snapshot = await _firestore
+          .collection('task_categories')
+          .where('userId', isEqualTo: user.uid)
+          .orderBy('createdAt', descending: false)
+          .get();
 
+      final List<TaskCategoryModel> loadedCategories = snapshot.docs
+          .map((doc) => TaskCategoryModel.fromFirestore(doc))
+          .toList();
+
+      _categories.assignAll(loadedCategories);
+
+      // Ne plus créer automatiquement les catégories par défaut
+      // L'utilisateur doit explicitement choisir de les créer
     } catch (e) {
       Get.snackbar('Erreur', 'Erreur lors du chargement des catégories: $e');
     }
   }
 
+  // Créer les catégories par défaut (maintenant accessible publiquement)
+  Future<void> createDefaultCategories() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final entitiesController = Get.find<EntitiesController>();
+      final personalEntityId = entitiesController.personalEntity?.id ?? 'personal';
+
+      final defaultCategories = TaskCategoryModel.getDefaultCategories(personalEntityId, userId: user.uid);
+
+      for (final category in defaultCategories) {
+        await createCategory(category);
+      }
+    } catch (e) {
+      print('Erreur lors de la création des catégories par défaut: $e');
+    }
+  }
+
+  // Vérifier si l'utilisateur n'a aucune catégorie
+  bool get hasNoCategories => _categories.isEmpty;
+
   // Création d'une catégorie
   Future<bool> createCategory(TaskCategoryModel category) async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        Get.snackbar('Erreur', 'Utilisateur non connecté');
+        return false;
+      }
+
       // Validation
       if (category.name.trim().isEmpty) {
         Get.snackbar('Erreur', 'Le nom de la catégorie est requis');
@@ -60,15 +101,20 @@ class TaskCategoryService extends GetxService {
         return false;
       }
 
-      // Génération d'un ID unique
+      // Génération d'un ID unique et ajout des données utilisateur
       final newCategory = category.copyWith(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
-      // Ici on sauvegarderait dans Firebase
-      _categories.add(newCategory);
+      // Sauvegarder dans Firebase
+      final docRef = await _firestore.collection('task_categories').add(newCategory.toFirestore());
+      final categoryWithId = newCategory.copyWith(id: docRef.id);
+
+      // Mettre à jour avec l'ID généré par Firebase
+      await docRef.update({'id': docRef.id});
+
+      _categories.add(categoryWithId);
 
       Get.snackbar('Succès', 'Catégorie créée avec succès');
       return true;
@@ -81,6 +127,12 @@ class TaskCategoryService extends GetxService {
   // Mise à jour d'une catégorie
   Future<bool> updateCategory(TaskCategoryModel updatedCategory) async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        Get.snackbar('Erreur', 'Utilisateur non connecté');
+        return false;
+      }
+
       final index = _categories.indexWhere((c) => c.id == updatedCategory.id);
       if (index == -1) {
         Get.snackbar('Erreur', 'Catégorie non trouvée');
@@ -107,7 +159,12 @@ class TaskCategoryService extends GetxService {
 
       final categoryWithUpdatedTime = updatedCategory.copyWith(updatedAt: DateTime.now());
 
-      // Ici on sauvegarderait dans Firebase
+      // Sauvegarder dans Firebase
+      await _firestore
+          .collection('task_categories')
+          .doc(updatedCategory.id)
+          .update(categoryWithUpdatedTime.toFirestore());
+
       _categories[index] = categoryWithUpdatedTime;
 
       Get.snackbar('Succès', 'Catégorie mise à jour avec succès');
@@ -156,7 +213,8 @@ class TaskCategoryService extends GetxService {
         if (confirmed != true) return false;
       }
 
-      // Ici on supprimerait de Firebase
+      // Supprimer de Firebase
+      await _firestore.collection('task_categories').doc(categoryId).delete();
       _categories.removeWhere((c) => c.id == categoryId);
 
       Get.snackbar('Succès', 'Catégorie supprimée avec succès');
@@ -190,31 +248,60 @@ class TaskCategoryService extends GetxService {
 
   // Vérifier combien de tâches utilisent une catégorie
   Future<int> _checkTasksUsingCategory(String categoryId) async {
-    // Ici on vérifierait avec le TaskService pour compter les tâches utilisant cette catégorie
-    // Pour la démo, on retourne un nombre aléatoire
-    return DateTime.now().millisecond % 5; // Simule 0-4 tâches
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return 0;
+
+      final QuerySnapshot snapshot = await _firestore
+          .collection('tasks')
+          .where('userId', isEqualTo: user.uid)
+          .where('categoryId', isEqualTo: categoryId)
+          .get();
+
+      return snapshot.docs.length;
+    } catch (e) {
+      print('Erreur lors de la vérification des tâches utilisant la catégorie: $e');
+      return 0;
+    }
   }
 
   // Obtenir les statistiques d'usage des catégories
-  Map<String, int> getCategoryUsageStats() {
-    // Ici on intégrerait avec TaskService pour obtenir les statistiques d'usage
-    final stats = <String, int>{};
-    for (final category in _categories) {
-      // Simulation d'usage - à remplacer par la vraie logique
-      stats[category.id] = DateTime.now().millisecond % 10;
+  Future<Map<String, int>> getCategoryUsageStats() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return {};
+
+      final stats = <String, int>{};
+
+      for (final category in _categories) {
+        final QuerySnapshot snapshot = await _firestore
+            .collection('tasks')
+            .where('userId', isEqualTo: user.uid)
+            .where('categoryId', isEqualTo: category.id)
+            .get();
+
+        stats[category.id] = snapshot.docs.length;
+      }
+
+      return stats;
+    } catch (e) {
+      print('Erreur lors de la récupération des statistiques: $e');
+      return {};
     }
-    return stats;
   }
 
   // Initialiser les catégories par défaut pour une entité
   Future<void> initializeDefaultCategoriesForEntity(String entityId) async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
       // Vérifier si les catégories par défaut existent déjà
       final existingCategories = getCategoriesByEntity(entityId);
       if (existingCategories.isNotEmpty) return;
 
       // Créer les catégories par défaut
-      final defaultCategories = TaskCategoryModel.getDefaultCategories(entityId);
+      final defaultCategories = TaskCategoryModel.getDefaultCategories(entityId, userId: user.uid);
 
       for (final category in defaultCategories) {
         await createCategory(category);
@@ -226,14 +313,28 @@ class TaskCategoryService extends GetxService {
   }
 
   // Obtenir les statistiques des catégories
-  Map<String, int> getCategoryStatistics() {
-    // Intégrer avec TaskService pour obtenir le nombre de tâches par catégorie
-    final stats = <String, int>{};
-    for (var category in _categories) {
-      // Simulation de statistiques - à remplacer par l'intégration TaskService réelle
-      stats[category.name] = DateTime.now().millisecond % 8;
+  Future<Map<String, int>> getCategoryStatistics() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return {};
+
+      final stats = <String, int>{};
+
+      for (var category in _categories) {
+        final QuerySnapshot snapshot = await _firestore
+            .collection('tasks')
+            .where('userId', isEqualTo: user.uid)
+            .where('categoryId', isEqualTo: category.id)
+            .get();
+
+        stats[category.name] = snapshot.docs.length;
+      }
+
+      return stats;
+    } catch (e) {
+      print('Erreur lors de la récupération des statistiques: $e');
+      return {};
     }
-    return stats;
   }
 
   // Nettoyage

@@ -369,6 +369,7 @@ class _TaskCreatePageState extends State<TaskCreatePage> {
             return DropdownMenuItem(
               value: entity.id,
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     entity.isPersonal ? Icons.person : Icons.business,
@@ -376,7 +377,7 @@ class _TaskCreatePageState extends State<TaskCreatePage> {
                     color: AppColors.primary,
                   ),
                   const SizedBox(width: 8),
-                  Expanded(
+                  Flexible(
                     child: Text(
                       entity.name,
                       overflow: TextOverflow.ellipsis,
@@ -405,6 +406,11 @@ class _TaskCreatePageState extends State<TaskCreatePage> {
       builder: (controller) {
         if (controller.isLoading.value) {
           return const LinearProgressIndicator();
+        }
+
+        // Si aucune catégorie n'existe, proposer de créer les catégories par défaut
+        if (controller.hasNoCategories) {
+          return _buildNoCategoriesWidget(controller);
         }
 
         return DropdownButtonFormField<String>(
@@ -439,6 +445,76 @@ class _TaskCreatePageState extends State<TaskCreatePage> {
     );
   }
 
+  Widget _buildNoCategoriesWidget(TaskCategoriesController controller) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.secondary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.secondary.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: AppColors.secondary),
+              const SizedBox(width: 8),
+              Text(
+                'Aucune catégorie trouvée',
+                style: Get.textTheme.titleSmall?.copyWith(
+                  color: AppColors.secondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Pour créer une tâche, vous devez d\'abord avoir des catégories. Voulez-vous créer les catégories par défaut ?',
+            style: Get.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => Get.toNamed('/tasks/categories'),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Créer manuellement'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.secondary,
+                    side: BorderSide(color: AppColors.secondary),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _createDefaultCategories(controller),
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Catégories par défaut'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createDefaultCategories(TaskCategoriesController controller) async {
+    await controller.createDefaultCategories();
+    // Recharger les catégories après création
+    await controller.loadCategories();
+  }
+
   Widget _buildProjectSelector() {
     return GetBuilder<ProjectsController>(
       builder: (controller) {
@@ -459,10 +535,11 @@ class _TaskCreatePageState extends State<TaskCreatePage> {
               return DropdownMenuItem(
                 value: project.id,
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(project.icon, size: 16, color: project.color),
                     const SizedBox(width: 8),
-                    Expanded(
+                    Flexible(
                       child: Text(
                         project.name,
                         overflow: TextOverflow.ellipsis,

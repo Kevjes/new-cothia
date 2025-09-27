@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 enum TaskStatus {
@@ -16,6 +17,7 @@ enum TaskPriority {
 
 class TaskModel {
   final String id;
+  final String userId;
   final String title;
   final String? description;
   final TaskStatus status;
@@ -40,6 +42,7 @@ class TaskModel {
 
   TaskModel({
     required this.id,
+    this.userId = '',
     required this.title,
     this.description,
     this.status = TaskStatus.pending,
@@ -181,6 +184,7 @@ class TaskModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'userId': userId,
       'title': title,
       'description': description,
       'status': status.name,
@@ -208,6 +212,7 @@ class TaskModel {
   static TaskModel fromJson(Map<String, dynamic> json) {
     return TaskModel(
       id: json['id'] ?? '',
+      userId: json['userId'] ?? '',
       title: json['title'] ?? '',
       description: json['description'],
       status: TaskStatus.values.firstWhere(
@@ -247,6 +252,7 @@ class TaskModel {
   // Méthode copyWith
   TaskModel copyWith({
     String? id,
+    String? userId,
     String? title,
     String? description,
     TaskStatus? status,
@@ -271,6 +277,7 @@ class TaskModel {
   }) {
     return TaskModel(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       title: title ?? this.title,
       description: description ?? this.description,
       status: status ?? this.status,
@@ -304,6 +311,16 @@ class TaskModel {
 
   @override
   int get hashCode => id.hashCode;
+
+  // Méthodes Firebase
+  Map<String, dynamic> toFirestore() {
+    return toJson();
+  }
+
+  static TaskModel fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return fromJson(data);
+  }
 
   @override
   String toString() {

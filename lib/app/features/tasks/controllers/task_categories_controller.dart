@@ -37,6 +37,9 @@ class TaskCategoriesController extends GetxController {
   // Statistiques
   int get totalCategories => _categoryService.categories.length;
 
+  // Vérifier si l'utilisateur n'a aucune catégorie
+  bool get hasNoCategories => _categoryService.hasNoCategories;
+
   // Getter pour toutes les catégories (alias)
   List<TaskCategoryModel> get allCategories => _categoryService.categories;
   int get defaultCategoriesCount => defaultCategories.length;
@@ -159,6 +162,19 @@ class TaskCategoriesController extends GetxController {
     }
   }
 
+  // Créer les catégories par défaut (pour proposition à l'utilisateur)
+  Future<void> createDefaultCategories() async {
+    try {
+      isLoading.value = true;
+      await _categoryService.createDefaultCategories();
+      Get.snackbar('Succès', 'Catégories par défaut créées avec succès');
+    } catch (e) {
+      Get.snackbar('Erreur', 'Erreur lors de la création des catégories par défaut');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   // Dupliquer une catégorie
   Future<bool> duplicateCategory(String categoryId) async {
     try {
@@ -184,9 +200,9 @@ class TaskCategoriesController extends GetxController {
   }
 
   // Obtenir les catégories les plus utilisées
-  List<TaskCategoryModel> getMostUsedCategories({int limit = 5}) {
+  Future<List<TaskCategoryModel>> getMostUsedCategories({int limit = 5}) async {
     // Intégrer avec TaskService pour obtenir les statistiques d'usage
-    final usageStats = _categoryService.getCategoryUsageStats();
+    final usageStats = await _categoryService.getCategoryUsageStats();
 
     // Trier les catégories par usage décroissant
     final sortedCategories = allCategories.where((cat) => usageStats.containsKey(cat.id)).toList();
@@ -207,15 +223,16 @@ class TaskCategoriesController extends GetxController {
   }
 
   // Obtenir les statistiques des catégories
-  Map<String, dynamic> getCategoriesStatistics() {
-    final stats = _categoryService.getCategoryStatistics();
+  Future<Map<String, dynamic>> getCategoriesStatistics() async {
+    final stats = await _categoryService.getCategoryStatistics();
+    final mostUsed = await getMostUsedCategories();
 
     return {
       'totalCategories': totalCategories,
       'defaultCategories': defaultCategoriesCount,
       'customCategories': customCategoriesCount,
       'usage': stats,
-      'mostUsed': getMostUsedCategories(),
+      'mostUsed': mostUsed,
     };
   }
 

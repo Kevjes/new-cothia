@@ -99,10 +99,12 @@ class TasksController extends GetxController {
     try {
       isLoading.value = true;
       await _taskService.loadTasks();
+      update(); // Notifier GetBuilder
     } catch (e) {
       Get.snackbar('Erreur', 'Erreur lors du chargement des tâches');
     } finally {
       isLoading.value = false;
+      update(); // Notifier GetBuilder même en cas d'erreur
     }
   }
 

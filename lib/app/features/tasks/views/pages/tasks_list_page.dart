@@ -166,11 +166,11 @@ class _TasksListPageState extends State<TasksListPage> {
   Widget _buildTasksList() {
     return GetBuilder<TasksController>(
       builder: (controller) {
-        if (_controller.isLoading.value) {
+        if (controller.isLoading.value) {
           return _buildShimmerList();
         }
 
-        final tasks = _controller.tasks;
+        final tasks = controller.tasks;
 
         if (tasks.isEmpty) {
           return _buildEmptyState();

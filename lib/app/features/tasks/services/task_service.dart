@@ -1,10 +1,14 @@
-import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import '../models/task_model.dart';
 import '../../entities/controllers/entities_controller.dart';
 
 class TaskService extends GetxService {
   static TaskService get to => Get.find();
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Liste réactive des tâches
   final RxList<TaskModel> _tasks = <TaskModel>[].obs;
@@ -49,9 +53,20 @@ class TaskService extends GetxService {
   // Chargement des tâches
   Future<void> loadTasks() async {
     try {
-      // Ici on chargerait depuis Firebase
-      // Pour l'instant, on utilise des données de test
-      _tasks.assignAll(_getMockTasks());
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final QuerySnapshot snapshot = await _firestore
+          .collection('tasks')
+          .where('userId', isEqualTo: user.uid)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final List<TaskModel> loadedTasks = snapshot.docs
+          .map((doc) => TaskModel.fromFirestore(doc))
+          .toList();
+
+      _tasks.assignAll(loadedTasks);
     } catch (e) {
       Get.snackbar('Erreur', 'Erreur lors du chargement des tâches: $e');
     }
@@ -60,21 +75,32 @@ class TaskService extends GetxService {
   // Création d'une tâche
   Future<bool> createTask(TaskModel task) async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        Get.snackbar('Erreur', 'Utilisateur non connecté');
+        return false;
+      }
+
       // Validation
       if (task.title.trim().isEmpty) {
         Get.snackbar('Erreur', 'Le titre de la tâche est requis');
         return false;
       }
 
-      // Génération d'un ID unique
+      // Génération d'un ID unique et ajout des données utilisateur
       final newTask = task.copyWith(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
-      // Ici on sauvegarderait dans Firebase
-      _tasks.add(newTask);
+      // Sauvegarder dans Firebase
+      final docRef = await _firestore.collection('tasks').add(newTask.toFirestore());
+      final taskWithId = newTask.copyWith(id: docRef.id);
+
+      // Mettre à jour avec l'ID généré par Firebase
+      await docRef.update({'id': docRef.id});
+
+      _tasks.add(taskWithId);
 
       Get.snackbar('Succès', 'Tâche créée avec succès');
       return true;
@@ -87,6 +113,12 @@ class TaskService extends GetxService {
   // Mise à jour d'une tâche
   Future<bool> updateTask(TaskModel updatedTask) async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        Get.snackbar('Erreur', 'Utilisateur non connecté');
+        return false;
+      }
+
       final index = _tasks.indexWhere((t) => t.id == updatedTask.id);
       if (index == -1) {
         Get.snackbar('Erreur', 'Tâche non trouvée');
@@ -95,7 +127,12 @@ class TaskService extends GetxService {
 
       final taskWithUpdatedTime = updatedTask.copyWith(updatedAt: DateTime.now());
 
-      // Ici on sauvegarderait dans Firebase
+      // Sauvegarder dans Firebase
+      await _firestore
+          .collection('tasks')
+          .doc(updatedTask.id)
+          .update(taskWithUpdatedTime.toFirestore());
+
       _tasks[index] = taskWithUpdatedTime;
 
       Get.snackbar('Succès', 'Tâche mise à jour avec succès');
@@ -109,13 +146,20 @@ class TaskService extends GetxService {
   // Suppression d'une tâche
   Future<bool> deleteTask(String taskId) async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        Get.snackbar('Erreur', 'Utilisateur non connecté');
+        return false;
+      }
+
       final task = _tasks.firstWhereOrNull((t) => t.id == taskId);
       if (task == null) {
         Get.snackbar('Erreur', 'Tâche non trouvée');
         return false;
       }
 
-      // Ici on supprimerait de Firebase
+      // Supprimer de Firebase
+      await _firestore.collection('tasks').doc(taskId).delete();
       _tasks.removeWhere((t) => t.id == taskId);
 
       Get.snackbar('Succès', 'Tâche supprimée avec succès');

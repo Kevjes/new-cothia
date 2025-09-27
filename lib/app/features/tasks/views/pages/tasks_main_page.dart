@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../routes/app_pages.dart';
 import 'tasks_overview_page.dart';
 import 'tasks_list_page.dart';
 import 'projects/projects_list_page.dart';
 import 'analytics/tasks_analytics_page.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../routes/app_pages.dart';
 import '../../../entities/controllers/entities_controller.dart';
 import '../../controllers/tasks_controller.dart';
 
@@ -22,7 +22,7 @@ class _TasksMainPageState extends State<TasksMainPage> {
   final List<Widget> _pages = [
     const TasksOverviewPage(),
     const TasksListPage(),
-    const ProjectsListPage(),
+    const Placeholder(), // Projects - TODO: Create ProjectsListPage
     const TasksAnalyticsPage(),
   ];
 
@@ -587,45 +587,28 @@ class _TasksMainPageState extends State<TasksMainPage> {
   }
 
   void _showSearch() {
-    final searchController = TextEditingController();
-
+    // TODO: Implémenter la recherche globale
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Recherche globale'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Rechercher des tâches...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              autofocus: true,
-              onSubmitted: (query) {
-                Navigator.of(context).pop();
-                if (query.trim().isNotEmpty) {
-                  Get.find<TasksController>().setSearchQuery(query.trim());
-                  setState(() {
-                    _selectedIndex = 1; // Aller à la liste des tâches
-                  });
-                  Get.snackbar('Recherche', 'Recherche pour "$query"');
-                }
-              },
+        title: const Text('Recherche'),
+        content: TextField(
+          decoration: InputDecoration(
+            hintText: 'Rechercher des tâches...',
+            prefixIcon: const Icon(Icons.search),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Recherchez par titre, description ou tags',
-              style: Get.textTheme.bodySmall?.copyWith(
-                color: AppColors.hint,
-              ),
-            ),
-          ],
+          ),
+          onSubmitted: (query) {
+            Navigator.of(context).pop();
+            // TODO: Implémenter la logique de recherche
+            Get.find<TasksController>().setSearchQuery(query);
+            setState(() {
+              _selectedIndex = 1; // Aller à la liste des tâches
+            });
+          },
         ),
         actions: [
           TextButton(

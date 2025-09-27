@@ -33,7 +33,7 @@ class TagsListPage extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           // Refresh tags data from Firebase
-          await Future.delayed(const Duration(seconds: 1));
+          // TODO: Implémenter le service de tags
           Get.snackbar('Actualisation', 'Tags actualisés');
         },
         child: tags.isEmpty

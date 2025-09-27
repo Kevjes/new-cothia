@@ -111,7 +111,6 @@ class TasksOverviewPage extends StatelessWidget {
                 AppColors.primary,
               ),
             ),
-            const SizedBox(width: 8),
             Expanded(
               child: _buildStatCard(
                 'En cours',
@@ -120,7 +119,6 @@ class TasksOverviewPage extends StatelessWidget {
                 AppColors.secondary,
               ),
             ),
-            const SizedBox(width: 8),
             Expanded(
               child: _buildStatCard(
                 'Terminées',
@@ -129,7 +127,6 @@ class TasksOverviewPage extends StatelessWidget {
                 AppColors.success,
               ),
             ),
-            const SizedBox(width: 8),
             Expanded(
               child: _buildStatCard(
                 'En retard',

@@ -20,7 +20,7 @@ class TasksAnalyticsPage extends StatelessWidget {
           return RefreshIndicator(
             onRefresh: () async {
               // Refresh analytics data from Firebase
-              await Future.delayed(const Duration(seconds: 1));
+              await controller.loadTasks();
               Get.snackbar('Actualisation', 'Données analytiques actualisées');
             },
             child: SingleChildScrollView(

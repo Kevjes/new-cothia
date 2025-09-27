@@ -66,7 +66,7 @@ class RecurringTasksPage extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           // Refresh recurring tasks from Firebase
-          await Future.delayed(const Duration(seconds: 1));
+          // TODO: Implémenter le service de tâches récurrentes
           Get.snackbar('Actualisation', 'Tâches récurrentes actualisées');
         },
         child: recurringTasks.isEmpty
@@ -191,7 +191,7 @@ class RecurringTasksPage extends StatelessWidget {
                     try {
                       task['isActive'] = value;
                       // Here you would typically update in Firebase
-                      // await recurringTaskService.updateTask(task['id'], {'isActive': value});
+                      // TODO: Implémenter la mise à jour des tâches récurrentes
 
                       Get.snackbar(
                         value ? 'Activé' : 'Désactivé',
@@ -309,7 +309,7 @@ class RecurringTasksPage extends StatelessWidget {
                   'createdAt': DateTime.now().toIso8601String(),
                 };
                 // Here you would typically save to Firebase
-                // await recurringTaskService.createTask(newRecurringTask);
+                // TODO: Implémenter la création de tâches récurrentes
 
                 Get.back();
                 Get.snackbar('Succès', 'Tâche récurrente créée avec succès');
@@ -354,7 +354,7 @@ class RecurringTasksPage extends StatelessWidget {
               // Update recurring task in Firebase
               try {
                 // Here you would typically update in Firebase
-                // await recurringTaskService.updateTask(task['id'], updatedData);
+                // TODO: Implémenter la modification de tâches récurrentes
 
                 Get.back();
                 Get.snackbar('Succès', 'Tâche récurrente modifiée avec succès');
@@ -438,7 +438,7 @@ class RecurringTasksPage extends StatelessWidget {
               // Delete recurring task from Firebase
               try {
                 // Here you would typically delete from Firebase
-                // await recurringTaskService.deleteTask(task['id']);
+                // TODO: Implémenter la suppression de tâches récurrentes
 
                 Get.back();
                 Get.snackbar('Succès', 'Tâche récurrente "${task['title']}" supprimée avec succès');

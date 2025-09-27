@@ -2,12 +2,14 @@ import 'package:cothia_app/app/core/utils/get_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../../../entities/controllers/entities_controller.dart';
+import '../../../../tasks/controllers/projects_controller.dart';
+import '../../../../tasks/controllers/tasks_controller.dart';
 import '../../../controllers/transactions_controller.dart';
 import '../../../controllers/budgets_controller.dart';
 import '../../../controllers/categories_controller.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../models/transaction_model.dart';
-import '../../../models/account_model.dart';
 
 class TransactionCreatePage extends StatefulWidget {
   final TransactionModel? transaction; // Pour l'édition
@@ -32,6 +34,7 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
   String? _selectedBudgetId;
   String? _selectedProjectId;
   String? _selectedTaskId;
+  String _selectedEntityId = '';
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   bool _isLoading = false;
@@ -40,8 +43,24 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
   @override
   void initState() {
     super.initState();
+    _initializeForm();
     if (_isEditing) {
       _loadTransactionData();
+    }
+  }
+
+  void _initializeForm() {
+    // Définir l'entité par défaut de manière sécurisée
+    try {
+      final entitiesController = Get.find<EntitiesController>();
+      _selectedEntityId = entitiesController.selectedEntityId.value;
+      if (_selectedEntityId.isEmpty && entitiesController.personalEntity != null) {
+        _selectedEntityId = entitiesController.personalEntity!.id;
+      }
+    } catch (e) {
+      // Si EntitiesController n'est pas trouvé, utiliser une valeur par défaut
+      print('EntitiesController not found: $e');
+      _selectedEntityId = 'personal'; // Valeur par défaut
     }
   }
 
@@ -500,20 +519,39 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
                   ),
                   hintText: 'Associer à un budget',
                 ),
-                items: const [
-                  DropdownMenuItem<String>(
+                items: [
+                  const DropdownMenuItem<String>(
                     value: null,
                     child: Text('Aucun budget'),
                   ),
-                  // TODO: Fix budget integration - budgets disabled for now
+                  ...controller.budgets.map((budget) {
+                    return DropdownMenuItem<String>(
+                      value: budget.id,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.account_balance_wallet,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '${budget.name} (${budget.spentAmount.toStringAsFixed(0)}/${budget.targetAmount.toStringAsFixed(0)} FCFA)',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
                 ],
                 onChanged: (value) {
                   setState(() => _selectedBudgetId = value);
                 },
               ),
             ),
-            // TODO: Fix budget integration - temporarily disabled
-            /*
             // Affichage d'une alerte si le budget sera dépassé
             if (_selectedBudgetId != null && _amountController.text.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -560,7 +598,6 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
                 },
               ),
             ],
-            */
           ],
         ),
       ),
@@ -924,7 +961,7 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
           budgetId: _selectedBudgetId,
           projectId: _selectedProjectId,
           taskId: _selectedTaskId,
-          entityId: '', // Sera défini par le service
+          entityId: _selectedEntityId,
           transactionDate: combinedDateTime,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -1039,69 +1076,112 @@ class _TransactionCreatePageState extends State<TransactionCreatePage> {
             const SizedBox(height: 16),
 
             // Project Selector
-            DropdownButtonFormField<String>(
-              value: _selectedProjectId,
-              decoration: const InputDecoration(
-                labelText: 'Projet lié',
-                prefixIcon: Icon(Icons.folder_special),
-                border: OutlineInputBorder(),
-              ),
-              hint: const Text('Sélectionner un projet (optionnel)'),
-              items: [
-                const DropdownMenuItem<String>(
-                  value: null,
-                  child: Text('Aucun projet'),
-                ),
-                // TODO: Charger les projets réels depuis TasksController/ProjectsController
-                const DropdownMenuItem<String>(
-                  value: 'proj1',
-                  child: Text('Projet Example 1'),
-                ),
-                const DropdownMenuItem<String>(
-                  value: 'proj2',
-                  child: Text('Projet Example 2'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedProjectId = value;
-                  // Reset task selection when project changes
-                  _selectedTaskId = null;
-                });
+            GetBuilder<ProjectsController>(
+              builder: (projectsController) {
+                final entityProjects = projectsController.getProjectsByEntity(_selectedEntityId);
+
+                return DropdownButtonFormField<String>(
+                  value: _selectedProjectId,
+                  decoration: const InputDecoration(
+                    labelText: 'Projet lié',
+                    prefixIcon: Icon(Icons.folder_special),
+                    border: OutlineInputBorder(),
+                  ),
+                  hint: const Text('Sélectionner un projet (optionnel)'),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('Aucun projet'),
+                    ),
+                    ...entityProjects.map((project) {
+                      return DropdownMenuItem<String>(
+                        value: project.id,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(project.icon, size: 16, color: project.color),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                project.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedProjectId = value;
+                      // Reset task selection when project changes
+                      _selectedTaskId = null;
+                    });
+                  },
+                );
               },
             ),
 
             const SizedBox(height: 16),
 
             // Task Selector (only show if project selected or standalone tasks)
-            DropdownButtonFormField<String>(
-              value: _selectedTaskId,
-              decoration: const InputDecoration(
-                labelText: 'Tâche liée',
-                prefixIcon: Icon(Icons.task_alt),
-                border: OutlineInputBorder(),
-              ),
-              hint: const Text('Sélectionner une tâche (optionnel)'),
-              items: [
-                const DropdownMenuItem<String>(
-                  value: null,
-                  child: Text('Aucune tâche'),
-                ),
-                // TODO: Charger les tâches réelles depuis TasksController
-                // Filtrer par projet si un projet est sélectionné
-                const DropdownMenuItem<String>(
-                  value: 'task1',
-                  child: Text('Tâche Example 1'),
-                ),
-                const DropdownMenuItem<String>(
-                  value: 'task2',
-                  child: Text('Tâche Example 2'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedTaskId = value;
-                });
+            GetBuilder<TasksController>(
+              builder: (tasksController) {
+                List<dynamic> availableTasks = [];
+
+                if (_selectedProjectId != null) {
+                  // Si un projet est sélectionné, filtrer les tâches par ce projet
+                  availableTasks = tasksController.getTasksByProject(_selectedProjectId!);
+                } else {
+                  // Sinon, afficher toutes les tâches
+                  availableTasks = tasksController.tasks.where((task) =>
+                    task.entityId == _selectedEntityId
+                  ).toList();
+                }
+
+                return DropdownButtonFormField<String>(
+                  value: _selectedTaskId,
+                  decoration: const InputDecoration(
+                    labelText: 'Tâche liée',
+                    prefixIcon: Icon(Icons.task_alt),
+                    border: OutlineInputBorder(),
+                  ),
+                  hint: const Text('Sélectionner une tâche (optionnel)'),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('Aucune tâche'),
+                    ),
+                    ...availableTasks.map((task) {
+                      return DropdownMenuItem<String>(
+                        value: task.id,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              task.priorityIcon,
+                              size: 16,
+                              color: task.priorityColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                task.title,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedTaskId = value;
+                    });
+                  },
+                );
               },
             ),
 

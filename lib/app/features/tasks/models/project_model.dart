@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 enum ProjectStatus {
@@ -10,6 +11,7 @@ enum ProjectStatus {
 
 class ProjectModel {
   final String id;
+  final String userId;
   final String name;
   final String? description;
   final ProjectStatus status;
@@ -31,6 +33,7 @@ class ProjectModel {
 
   ProjectModel({
     required this.id,
+    this.userId = '',
     required this.name,
     this.description,
     this.status = ProjectStatus.planning,
@@ -134,6 +137,7 @@ class ProjectModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'userId': userId,
       'name': name,
       'description': description,
       'status': status.name,
@@ -158,6 +162,7 @@ class ProjectModel {
   static ProjectModel fromJson(Map<String, dynamic> json) {
     return ProjectModel(
       id: json['id'] ?? '',
+      userId: json['userId'] ?? '',
       name: json['name'] ?? '',
       description: json['description'],
       status: ProjectStatus.values.firstWhere(
@@ -191,6 +196,7 @@ class ProjectModel {
   // Méthode copyWith
   ProjectModel copyWith({
     String? id,
+    String? userId,
     String? name,
     String? description,
     ProjectStatus? status,
@@ -212,6 +218,7 @@ class ProjectModel {
   }) {
     return ProjectModel(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       description: description ?? this.description,
       status: status ?? this.status,
@@ -242,6 +249,16 @@ class ProjectModel {
 
   @override
   int get hashCode => id.hashCode;
+
+  // Méthodes Firebase
+  Map<String, dynamic> toFirestore() {
+    return toJson();
+  }
+
+  static ProjectModel fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return fromJson(data);
+  }
 
   @override
   String toString() {

@@ -42,107 +42,124 @@ class TaskCategoriesListPage extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.category_outlined,
-            size: 64,
-            color: AppColors.hint,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Aucune catégorie',
-            style: Get.textTheme.headlineSmall?.copyWith(
-              color: AppColors.hint,
+    return GetBuilder<TaskCategoriesController>(
+      builder: (controller) {
+        return Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.category_outlined,
+                  size: 64,
+                  color: AppColors.hint,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Aucune catégorie',
+                  style: Get.textTheme.headlineSmall?.copyWith(
+                    color: AppColors.hint,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pour organiser vos tâches, vous devez d\'abord créer des catégories.',
+                  style: Get.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.hint,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+
+                // Proposition de catégories par défaut
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.secondary.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.auto_awesome, color: AppColors.secondary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Suggestion',
+                            style: Get.textTheme.titleMedium?.copyWith(
+                              color: AppColors.secondary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Nous pouvons créer des catégories par défaut pour vous aider à démarrer rapidement.',
+                        style: Get.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[700],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => Get.toNamed('/tasks/categories/create'),
+                              icon: const Icon(Icons.add),
+                              label: const Text('Créer manuellement'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.secondary,
+                                side: BorderSide(color: AppColors.secondary),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _createDefaultCategories(controller),
+                              icon: const Icon(Icons.auto_awesome),
+                              label: const Text('Catégories par défaut'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.secondary,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Créez votre première catégorie personnalisée',
-            style: Get.textTheme.bodyMedium?.copyWith(
-              color: AppColors.hint,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => Get.toNamed('/tasks/categories/create'),
-            icon: const Icon(Icons.add),
-            label: const Text('Créer une catégorie'),
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  Future<void> _createDefaultCategories(TaskCategoriesController controller) async {
+    await controller.createDefaultCategories();
+    // Recharger les catégories après création
+    await controller.loadCategories();
   }
 
   Widget _buildCategoriesList(TaskCategoriesController controller) {
-    // Séparer les catégories par défaut et personnalisées
-    final defaultCategories = controller.categories.where((c) => c.isDefault).toList();
-    final customCategories = controller.categories.where((c) => !c.isDefault).toList();
-
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      children: [
-        if (defaultCategories.isNotEmpty) ...[
-          Text(
-            'Catégories par défaut',
-            style: Get.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Ces catégories sont prédéfinies et ne peuvent pas être supprimées',
-            style: Get.textTheme.bodySmall?.copyWith(
-              color: AppColors.hint,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...defaultCategories.map((category) => _buildCategoryCard(category, controller, isDefault: true)),
-          const SizedBox(height: 24),
-        ],
-        if (customCategories.isNotEmpty) ...[
-          Text(
-            'Catégories personnalisées',
-            style: Get.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.secondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...customCategories.map((category) => _buildCategoryCard(category, controller, isDefault: false)),
-        ] else if (defaultCategories.isNotEmpty) ...[
-          Text(
-            'Catégories personnalisées',
-            style: Get.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.secondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Aucune catégorie personnalisée créée',
-            style: Get.textTheme.bodyMedium?.copyWith(
-              color: AppColors.hint,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: ElevatedButton.icon(
-              onPressed: () => Get.toNamed('/tasks/categories/create'),
-              icon: const Icon(Icons.add),
-              label: const Text('Créer une catégorie'),
-            ),
-          ),
-        ],
-      ],
+      itemCount: controller.categories.length,
+      itemBuilder: (context, index) {
+        final category = controller.categories[index];
+        return _buildCategoryCard(category, controller);
+      },
     );
   }
 
-  Widget _buildCategoryCard(TaskCategoryModel category, TaskCategoriesController controller, {required bool isDefault}) {
+  Widget _buildCategoryCard(TaskCategoryModel category, TaskCategoriesController controller) {
     final taskCount = controller.getTaskCountByCategory(category.id);
 
     return Card(
@@ -171,33 +188,11 @@ class TaskCategoriesListPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            category.name,
-                            style: Get.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        if (isDefault)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.info.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'Par défaut',
-                              style: TextStyle(
-                                color: AppColors.info,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                      ],
+                    Text(
+                      category.name,
+                      style: Get.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     if (category.description != null) ...[
                       const SizedBox(height: 4),
@@ -226,31 +221,25 @@ class TaskCategoriesListPage extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!isDefault)
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'edit':
-                        Get.toNamed('/tasks/categories/edit', arguments: category);
-                        break;
-                      case 'delete':
-                        _showDeleteConfirmation(category, controller);
-                        break;
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Text('Modifier'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Supprimer'),
-                    ),
-                  ],
-                )
-              else
-                Icon(Icons.lock, size: 20, color: AppColors.hint),
+              IconButton(
+                onPressed: () => Get.toNamed('/tasks/categories/edit', arguments: category),
+                icon: Icon(
+                  Icons.edit,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                tooltip: 'Modifier la catégorie',
+              ),
+              if (!category.isDefault)
+                IconButton(
+                  onPressed: () => _showDeleteConfirmation(category, controller),
+                  icon: Icon(
+                    Icons.delete,
+                    color: AppColors.error,
+                    size: 20,
+                  ),
+                  tooltip: 'Supprimer la catégorie',
+                ),
             ],
           ),
         ),

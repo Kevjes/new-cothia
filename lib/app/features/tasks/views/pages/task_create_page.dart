@@ -404,43 +404,45 @@ class _TaskCreatePageState extends State<TaskCreatePage> {
   Widget _buildCategorySelector() {
     return GetBuilder<TaskCategoriesController>(
       builder: (controller) {
-        if (controller.isLoading.value) {
-          return const LinearProgressIndicator();
-        }
+        return Obx(() {
+          if (controller.isLoading.value) {
+            return const LinearProgressIndicator();
+          }
 
-        // Si aucune catégorie n'existe, proposer de créer les catégories par défaut
-        if (controller.hasNoCategories) {
-          return _buildNoCategoriesWidget(controller);
-        }
+          // Si aucune catégorie n'existe, proposer de créer les catégories par défaut
+          if (controller.hasNoCategories) {
+            return _buildNoCategoriesWidget(controller);
+          }
 
-        return DropdownButtonFormField<String>(
-          value: _selectedCategoryId,
-          decoration: const InputDecoration(
-            labelText: 'Catégorie *',
-            prefixIcon: Icon(Icons.category),
-          ),
-          items: controller.categories.map((category) {
-            return DropdownMenuItem(
-              value: category.id,
-              child: Row(
-                children: [
-                  Icon(category.icon, size: 16, color: category.color),
-                  const SizedBox(width: 8),
-                  Text(category.name),
-                ],
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() => _selectedCategoryId = value);
-          },
-          validator: (value) {
-            if (value == null) {
-              return 'Veuillez sélectionner une catégorie';
-            }
-            return null;
-          },
-        );
+          return DropdownButtonFormField<String>(
+            value: _selectedCategoryId,
+            decoration: const InputDecoration(
+              labelText: 'Catégorie *',
+              prefixIcon: Icon(Icons.category),
+            ),
+            items: controller.categories.map((category) {
+              return DropdownMenuItem(
+                value: category.id,
+                child: Row(
+                  children: [
+                    Icon(category.icon, size: 16, color: category.color),
+                    const SizedBox(width: 8),
+                    Text(category.name),
+                  ],
+                ),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() => _selectedCategoryId = value);
+            },
+            validator: (value) {
+              if (value == null) {
+                return 'Veuillez sélectionner une catégorie';
+              }
+              return null;
+            },
+          );
+        });
       },
     );
   }

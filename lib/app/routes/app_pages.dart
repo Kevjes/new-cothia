@@ -36,6 +36,7 @@ import '../features/tasks/views/pages/projects/project_edit_page.dart';
 import '../features/tasks/views/pages/categories/categories_list_page.dart';
 import '../features/tasks/views/pages/categories/category_create_page.dart';
 import '../features/tasks/views/pages/categories/category_edit_page.dart';
+import '../features/tasks/views/pages/categories/category_details_page.dart';
 import '../features/tasks/views/pages/tags/tags_list_page.dart';
 import '../features/tasks/views/pages/recurring/recurring_tasks_page.dart';
 import '../features/tasks/views/pages/analytics/tasks_analytics_page.dart';
@@ -204,6 +205,11 @@ class AppPages {
     GetPage(
       name: _Paths.TASKS_CATEGORY_EDIT,
       page: () => const TaskCategoryEditPage(),
+      binding: TasksBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASKS_CATEGORY_DETAILS,
+      page: () => const TaskCategoryDetailsPage(),
       binding: TasksBinding(),
     ),
 

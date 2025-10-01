@@ -232,6 +232,40 @@ class AccountsController extends GetxController {
     return await createAccount(duplicated);
   }
 
+  Future<bool> toggleFavorite(String accountId) async {
+    try {
+      final account = _accounts.firstWhere((a) => a.id == accountId);
+      final updatedAccount = account.copyWith(
+        isFavorite: !account.isFavorite,
+        updatedAt: DateTime.now(),
+      );
+
+      await _accountService.updateAccount(updatedAccount);
+      await loadAccounts();
+
+      Get.snackbar(
+        'Succès',
+        updatedAccount.isFavorite
+            ? 'Compte ajouté aux favoris'
+            : 'Compte retiré des favoris',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de modifier le statut favori: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
+  }
+
   // Balance operations
   Future<bool> adjustBalance(String accountId, double newBalance, String reason) async {
     try {

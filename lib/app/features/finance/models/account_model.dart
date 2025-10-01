@@ -21,6 +21,7 @@ class AccountModel {
   final String? bankName;
   final String? accountNumber;
   final bool isActive;
+  final bool isFavorite;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -37,6 +38,7 @@ class AccountModel {
     this.bankName,
     this.accountNumber,
     this.isActive = true,
+    this.isFavorite = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -76,6 +78,7 @@ class AccountModel {
       'bankName': bankName,
       'accountNumber': accountNumber,
       'isActive': isActive,
+      'isFavorite': isFavorite,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -98,6 +101,7 @@ class AccountModel {
       bankName: json['bankName'],
       accountNumber: json['accountNumber'],
       isActive: json['isActive'] ?? true,
+      isFavorite: json['isFavorite'] ?? false,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
@@ -125,6 +129,7 @@ class AccountModel {
       bankName: data['bankName'],
       accountNumber: data['accountNumber'],
       isActive: data['isActive'] ?? true,
+      isFavorite: data['isFavorite'] ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -143,6 +148,7 @@ class AccountModel {
       'bankName': bankName,
       'accountNumber': accountNumber,
       'isActive': isActive,
+      'isFavorite': isFavorite,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -161,6 +167,7 @@ class AccountModel {
     String? bankName,
     String? accountNumber,
     bool? isActive,
+    bool? isFavorite,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -177,6 +184,7 @@ class AccountModel {
       bankName: bankName ?? this.bankName,
       accountNumber: accountNumber ?? this.accountNumber,
       isActive: isActive ?? this.isActive,
+      isFavorite: isFavorite ?? this.isFavorite,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

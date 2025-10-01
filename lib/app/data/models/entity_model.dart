@@ -25,6 +25,17 @@ class EntityModel {
   bool get isPersonal => type == AppConstants.entityTypePersonal;
   bool get isOrganization => type == AppConstants.entityTypeOrganization;
 
+  String get typeDisplayName {
+    switch (type) {
+      case AppConstants.entityTypePersonal:
+        return 'Personnel';
+      case AppConstants.entityTypeOrganization:
+        return 'Organisation';
+      default:
+        return 'Inconnu';
+    }
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

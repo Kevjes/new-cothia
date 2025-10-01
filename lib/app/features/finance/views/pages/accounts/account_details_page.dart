@@ -4,9 +4,11 @@ import 'package:get/get.dart';
 import '../../../controllers/accounts_controller.dart';
 import '../../../controllers/transactions_controller.dart';
 import '../../../controllers/finance_controller.dart';
+import '../../../controllers/automation_controller.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../models/account_model.dart';
 import '../../../models/transaction_model.dart';
+import '../../../models/automation_rule_model.dart';
 import 'account_create_page.dart';
 import '../transactions/transaction_create_page.dart';
 import '../transactions/transactions_list_page.dart';
@@ -52,6 +54,13 @@ class AccountDetailsPage extends StatelessWidget {
         title: Text(account!.name),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: Icon(
+              account!.isFavorite ? Icons.star : Icons.star_border,
+              color: account!.isFavorite ? Colors.amber : null,
+            ),
+            onPressed: () => _toggleFavorite(),
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () => _editAccount(),
@@ -100,6 +109,8 @@ class AccountDetailsPage extends StatelessWidget {
             _buildAccountHeader(),
             const SizedBox(height: 24),
             _buildAccountInfo(),
+            const SizedBox(height: 24),
+            _buildAutomationRules(),
             const SizedBox(height: 24),
             _buildBalanceHistory(),
             const SizedBox(height: 24),
@@ -272,6 +283,192 @@ class AccountDetailsPage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAutomationRules() {
+    final automationController = Get.put(AutomationController());
+
+    return Obx(() {
+      // Filtrer les règles liées à ce compte
+      final relatedRules = automationController.rules.where((rule) {
+        return rule.action.sourceAccountId == account!.id ||
+            rule.action.destinationAccountId == account!.id;
+      }).toList();
+
+      if (relatedRules.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      // Séparer les règles entrantes et sortantes
+      final incomingRules = relatedRules
+          .where((rule) => rule.action.destinationAccountId == account!.id)
+          .toList();
+      final outgoingRules = relatedRules
+          .where((rule) => rule.action.sourceAccountId == account!.id)
+          .toList();
+
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Automatisations (${relatedRules.length})',
+                    style: Get.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (incomingRules.isNotEmpty) ...[
+                Row(
+                  children: [
+                    Icon(
+                      Icons.arrow_downward,
+                      color: AppColors.success,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Entrantes (${incomingRules.length})',
+                      style: Get.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...incomingRules.map((rule) => _buildRuleCard(rule, isIncoming: true)),
+                const SizedBox(height: 16),
+              ],
+              if (outgoingRules.isNotEmpty) ...[
+                Row(
+                  children: [
+                    Icon(
+                      Icons.arrow_upward,
+                      color: AppColors.error,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Sortantes (${outgoingRules.length})',
+                      style: Get.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...outgoingRules.map((rule) => _buildRuleCard(rule, isIncoming: false)),
+              ],
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildRuleCard(AutomationRuleModel rule, {required bool isIncoming}) {
+    final directionColor = isIncoming ? AppColors.success : AppColors.error;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: directionColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: directionColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: rule.isActive
+                  ? directionColor.withValues(alpha: 0.1)
+                  : AppColors.hint.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isIncoming ? Icons.arrow_downward : Icons.arrow_upward,
+              size: 16,
+              color: rule.isActive ? directionColor : AppColors.hint,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        rule.name,
+                        style: Get.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: rule.isActive ? null : AppColors.hint,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: rule.isActive
+                            ? AppColors.success.withValues(alpha: 0.1)
+                            : AppColors.hint.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        rule.isActive ? 'Active' : 'Inactive',
+                        style: Get.textTheme.labelSmall?.copyWith(
+                          color: rule.isActive ? AppColors.success : AppColors.hint,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  rule.triggerDescription,
+                  style: Get.textTheme.bodySmall?.copyWith(
+                    color: AppColors.hint,
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  rule.action.displayDescription,
+                  style: Get.textTheme.bodySmall?.copyWith(
+                    color: directionColor.withValues(alpha: 0.8),
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -545,6 +742,11 @@ class AccountDetailsPage extends StatelessWidget {
 
   void _editAccount() {
     Get.to(() => AccountCreatePage(account: account));
+  }
+
+  void _toggleFavorite() {
+    final accountsController = Get.find<AccountsController>();
+    accountsController.toggleFavorite(account!.id);
   }
 
   void _addTransaction({bool? isIncome}) {

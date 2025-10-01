@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../services/automation_service.dart';
+import '../services/advanced_automation_service.dart';
 import '../../../data/services/storage_service.dart';
+import '../models/automation_rule_model.dart';
 
+/// Controller pour la gestion des règles d'automatisation
 class AutomationController extends GetxController {
-  final AutomationService _automationService = AutomationService();
+  final AdvancedAutomationService _automationService = AdvancedAutomationService();
 
   // Observables
-  final _isExecuting = false.obs;
-  final _lastExecutionResults = <Map<String, dynamic>>[].obs;
-  final _nextExecutions = <Map<String, dynamic>>[].obs;
+  final _isLoading = false.obs;
   final _hasError = false.obs;
   final _errorMessage = ''.obs;
+  final _rules = <AutomationRuleModel>[].obs;
 
   // Getters
-  bool get isExecuting => _isExecuting.value;
-  List<Map<String, dynamic>> get lastExecutionResults => _lastExecutionResults;
-  List<Map<String, dynamic>> get nextExecutions => _nextExecutions;
+  bool get isLoading => _isLoading.value;
   bool get hasError => _hasError.value;
   String get errorMessage => _errorMessage.value;
+  List<AutomationRuleModel> get rules => _rules;
+  List<AutomationRuleModel> get activeRules => _rules.where((r) => r.isActive).toList();
 
   String? _currentEntityId;
+  String? get currentEntityId => _currentEntityId;
 
   @override
   void onInit() {
@@ -37,254 +39,166 @@ class AutomationController extends GetxController {
         throw Exception('Entity ID not found');
       }
 
-      await loadNextExecutions();
+      await loadRules();
     } catch (e) {
       _hasError.value = true;
       _errorMessage.value = e.toString();
     }
   }
 
-  /// Charge les prochaines exécutions d'automatisations
-  Future<void> loadNextExecutions() async {
+  // =====================================================
+  // Gestion des règles d'automatisation
+  // =====================================================
+
+  /// Charge toutes les règles d'automatisation
+  Future<void> loadRules() async {
     if (_currentEntityId == null) return;
 
     try {
+      _isLoading.value = true;
       _hasError.value = false;
-      final executions = await _automationService.getNextExecutionDates(_currentEntityId!);
-      _nextExecutions.assignAll(executions);
+      final rules = await _automationService.getRulesByEntity(_currentEntityId!);
+      _rules.assignAll(rules);
     } catch (e) {
       _hasError.value = true;
-      _errorMessage.value = 'Erreur lors du chargement des prochaines exécutions: $e';
-    }
-  }
-
-  /// Exécute toutes les automatisations manuellement
-  Future<void> executeAllAutomations({bool showProgress = true}) async {
-    if (_currentEntityId == null) {
+      _errorMessage.value = 'Erreur lors du chargement des règles: $e';
       Get.snackbar(
         'Erreur',
-        'Entity ID non initialisé',
+        'Erreur lors du chargement: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
-      return;
-    }
-
-    try {
-      _isExecuting.value = true;
-      _hasError.value = false;
-
-      if (showProgress) {
-        Get.snackbar(
-          'Exécution',
-          'Exécution des automatisations en cours...',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.blue,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 2),
-        );
-      }
-
-      final results = await _automationService.executeAutomaticTransfers(_currentEntityId!);
-      _lastExecutionResults.assignAll(results);
-
-      // Recharger les prochaines exécutions
-      await loadNextExecutions();
-
-      // Afficher les résultats
-      final successCount = results.where((r) => r['success'] == true).length;
-      final totalCount = results.length;
-
-      if (showProgress) {
-        if (successCount == totalCount && totalCount > 0) {
-          Get.snackbar(
-            'Succès',
-            '$successCount automatisation(s) exécutée(s) avec succès',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
-          );
-        } else if (successCount > 0) {
-          Get.snackbar(
-            'Partiellement réussi',
-            '$successCount/$totalCount automatisations réussies',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.orange,
-            colorText: Colors.white,
-          );
-        } else if (totalCount == 0) {
-          Get.snackbar(
-            'Information',
-            'Aucune automatisation à exécuter aujourd\'hui',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.blue,
-            colorText: Colors.white,
-          );
-        } else {
-          Get.snackbar(
-            'Erreurs',
-            'Échec de toutes les automatisations',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-        }
-      }
-
-    } catch (e) {
-      _hasError.value = true;
-      _errorMessage.value = e.toString();
-
-      if (showProgress) {
-        Get.snackbar(
-          'Erreur',
-          'Erreur lors de l\'exécution des automatisations: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-      }
     } finally {
-      _isExecuting.value = false;
+      _isLoading.value = false;
     }
   }
 
-  /// Simule l'exécution d'une automatisation spécifique (prévisualisation)
-  Future<void> previewAutomation(String budgetId, String budgetName) async {
+  /// Crée une nouvelle règle d'automatisation
+  Future<bool> createRule(AutomationRuleModel rule) async {
     try {
-      // On devrait récupérer le budget, mais pour simplifier, on affiche juste un message
-      Get.dialog(
-        AlertDialog(
-          title: const Text('Aperçu de l\'automatisation'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Budget: $budgetName'),
-              const SizedBox(height: 8),
-              const Text('Cette fonctionnalité permettra de prévisualiser l\'exécution de l\'automatisation avant de la lancer.'),
-              const SizedBox(height: 8),
-              const Text('Détails:'),
-              const Text('• Montant à transférer'),
-              const Text('• Comptes source et destination'),
-              const Text('• Impacts sur les soldes'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Get.back(),
-              child: const Text('Fermer'),
-            ),
-          ],
-        ),
-      );
+      _isLoading.value = true;
+      final success = await _automationService.createRule(rule);
+      if (success) {
+        await loadRules();
+        Get.snackbar(
+          'Succès',
+          'Règle créée avec succès',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+      return success;
     } catch (e) {
       Get.snackbar(
         'Erreur',
-        'Erreur lors de la prévisualisation: $e',
+        'Erreur lors de la création: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+      return false;
+    } finally {
+      _isLoading.value = false;
     }
   }
 
-  /// Affiche les détails des dernières exécutions
-  void showExecutionResults() {
-    if (_lastExecutionResults.isEmpty) {
+  /// Met à jour une règle d'automatisation
+  Future<bool> updateRule(AutomationRuleModel rule) async {
+    try {
+      _isLoading.value = true;
+      final success = await _automationService.updateRule(rule);
+      if (success) {
+        await loadRules();
+        Get.snackbar(
+          'Succès',
+          'Règle mise à jour',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+      return success;
+    } catch (e) {
       Get.snackbar(
-        'Information',
-        'Aucune exécution récente',
+        'Erreur',
+        'Erreur lors de la mise à jour: $e',
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
-      return;
+      return false;
+    } finally {
+      _isLoading.value = false;
     }
-
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Résultats des automatisations'),
-        content: Container(
-          width: double.maxFinite,
-          height: 400,
-          child: ListView.builder(
-            itemCount: _lastExecutionResults.length,
-            itemBuilder: (context, index) {
-              final result = _lastExecutionResults[index];
-              final isSuccess = result['success'] == true;
-
-              return ListTile(
-                leading: Icon(
-                  isSuccess ? Icons.check_circle : Icons.error,
-                  color: isSuccess ? Colors.green : Colors.red,
-                ),
-                title: Text(result['budgetName'] ?? 'Budget inconnu'),
-                subtitle: Text(result['message'] ?? 'Aucun message'),
-                trailing: isSuccess
-                    ? const Icon(Icons.arrow_forward, color: Colors.blue)
-                    : null,
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Fermer'),
-          ),
-          if (_lastExecutionResults.any((r) => r['success'] == true))
-            ElevatedButton(
-              onPressed: () {
-                Get.back();
-                // Naviguer vers les transactions récentes
-                Get.toNamed('/finance/transactions');
-              },
-              child: const Text('Voir les transactions'),
-            ),
-        ],
-      ),
-    );
   }
 
-  /// Programme l'exécution automatique quotidienne (pour le futur)
-  Future<void> scheduleAutomaticExecution() async {
-    // Cette méthode sera implémentée quand nous aurons un système de tâches en arrière-plan
-    Get.snackbar(
-      'Information',
-      'La programmation automatique sera disponible dans une prochaine version',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
-    );
+  /// Supprime une règle d'automatisation
+  Future<bool> deleteRule(String ruleId) async {
+    try {
+      _isLoading.value = true;
+      final success = await _automationService.deleteRule(ruleId);
+      if (success) {
+        await loadRules();
+        Get.snackbar(
+          'Succès',
+          'Règle supprimée avec succès',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+      return success;
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Erreur lors de la suppression: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
+  /// Active/désactive une règle
+  Future<bool> toggleRuleStatus(String ruleId) async {
+    try {
+      final rule = _rules.firstWhere((r) => r.id == ruleId);
+      final updatedRule = rule.copyWith(isActive: !rule.isActive);
+      return await updateRule(updatedRule);
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Erreur lors du changement de statut: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
   }
 
   /// Rafraîchit toutes les données
   Future<void> refreshData() async {
-    await loadNextExecutions();
+    await loadRules();
   }
 
-  /// Nettoie les résultats d'exécution
-  void clearExecutionResults() {
-    _lastExecutionResults.clear();
+  /// Réessaie l'initialisation en cas d'erreur
+  Future<void> retryInitialization() async {
+    await _initializeController();
   }
 
-  // Statistiques rapides
-  int get totalPendingAutomations => _nextExecutions.length;
+  // =====================================================
+  // Statistiques sur les règles
+  // =====================================================
 
-  double get totalPendingAmount {
-    return _nextExecutions.fold(0.0, (sum, execution) {
-      return sum + ((execution['amount'] as num?)?.toDouble() ?? 0.0);
-    });
-  }
-
-  int get automationsToday {
-    final today = DateTime.now();
-    return _nextExecutions.where((execution) {
-      final nextExecution = execution['nextExecution'] as DateTime?;
-      if (nextExecution == null) return false;
-      return nextExecution.year == today.year &&
-             nextExecution.month == today.month &&
-             nextExecution.day == today.day;
-    }).length;
-  }
+  int get totalRules => _rules.length;
+  int get activeRulesCount => activeRules.length;
+  int get scheduledRulesCount => _rules.where((r) => r.triggerType == TriggerType.scheduled).length;
+  int get eventBasedRulesCount => _rules.where((r) => r.triggerType == TriggerType.eventBased).length;
+  int get categoryBasedRulesCount => _rules.where((r) => r.triggerType == TriggerType.categoryBased).length;
 }

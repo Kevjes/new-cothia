@@ -1,15 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
 import '../models/transaction_model.dart';
 import '../models/account_model.dart';
 import '../models/budget_model.dart';
 import 'account_service.dart';
 import 'budget_service.dart';
+import 'automation_execution_engine.dart';
 import '../../../core/constants/app_constants.dart';
 
 class TransactionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AccountService _accountService = AccountService();
   final BudgetService _budgetService = BudgetService();
+
+  // Automation engine (lazy loaded to avoid circular dependencies)
+  AutomationExecutionEngine? get _automationEngine {
+    try {
+      return Get.find<AutomationExecutionEngine>();
+    } catch (e) {
+      print('AutomationExecutionEngine not found: $e');
+      return null;
+    }
+  }
 
   // Obtenir les transactions d'une entité
   Future<List<TransactionModel>> getTransactionsByEntity(
@@ -98,6 +110,9 @@ class TransactionService {
       if (transaction.status == TransactionStatus.validated) {
         await _updateAccountBalances(createdTransaction);
         await _updateBudgetAmounts(createdTransaction);
+
+        // Déclencher les règles d'automatisation
+        await _triggerAutomationRules(createdTransaction);
       }
 
       return createdTransaction;
@@ -145,6 +160,9 @@ class TransactionService {
       // Mettre à jour les soldes des comptes et budgets
       await _updateAccountBalances(validatedTransaction);
       await _updateBudgetAmounts(validatedTransaction);
+
+      // Déclencher les règles d'automatisation
+      await _triggerAutomationRules(validatedTransaction);
 
       return validatedTransaction;
     } catch (e) {
@@ -477,6 +495,136 @@ class TransactionService {
       };
     } catch (e) {
       throw Exception('Erreur lors du calcul des statistiques: ${e.toString()}');
+    }
+  }
+
+  // ================================
+  // Méthodes d'automatisation
+  // ================================
+
+  /// Déclencher les règles d'automatisation pour une transaction
+  Future<void> _triggerAutomationRules(TransactionModel transaction) async {
+    try {
+      final automationEngine = _automationEngine;
+      if (automationEngine == null) {
+        print('Moteur d\'automatisation non disponible');
+        return;
+      }
+
+      print('Déclenchement des règles d\'automatisation pour transaction: ${transaction.id}');
+
+      // Déclencher les règles basées sur la transaction
+      await automationEngine.triggerRulesForTransaction(transaction);
+
+      // Déclenchements spéciaux selon le contexte
+      await _handleSpecialTriggers(transaction);
+
+    } catch (e) {
+      print('Erreur lors du déclenchement des règles d\'automatisation: $e');
+      // Ne pas faire échouer la transaction pour une erreur d'automatisation
+    }
+  }
+
+  /// Gérer les déclenchements spéciaux selon le contexte de la transaction
+  Future<void> _handleSpecialTriggers(TransactionModel transaction) async {
+    try {
+      final automationEngine = _automationEngine;
+      if (automationEngine == null) return;
+
+      // Vérifier si c'est la première entrée du mois
+      if (transaction.type == TransactionType.income) {
+        final isFirstEntry = await _isFirstIncomeOfMonth(transaction);
+        if (isFirstEntry) {
+          print('Première entrée du mois détectée');
+          await automationEngine.triggerFirstEntryOfMonthRules(transaction.entityId);
+        }
+      }
+
+      // Vérifier les seuils de solde des comptes
+      await _checkAccountBalanceThresholds(transaction);
+
+      // Vérifier les dépassements de budget
+      await _checkBudgetLimits(transaction);
+
+    } catch (e) {
+      print('Erreur lors des déclenchements spéciaux: $e');
+    }
+  }
+
+  /// Vérifier si c'est la première transaction de revenus du mois
+  Future<bool> _isFirstIncomeOfMonth(TransactionModel transaction) async {
+    try {
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+
+      final previousIncomes = await _firestore
+          .collection(AppConstants.transactionsCollection)
+          .where('entityId', isEqualTo: transaction.entityId)
+          .where('type', isEqualTo: TransactionType.income.name)
+          .where('status', isEqualTo: TransactionStatus.validated.name)
+          .where('transactionDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where('transactionDate', isLessThan: Timestamp.fromDate(transaction.transactionDate))
+          .get();
+
+      return previousIncomes.docs.isEmpty;
+    } catch (e) {
+      print('Erreur lors de la vérification de première entrée: $e');
+      return false;
+    }
+  }
+
+  /// Vérifier les seuils de solde des comptes
+  Future<void> _checkAccountBalanceThresholds(TransactionModel transaction) async {
+    try {
+      final automationEngine = _automationEngine;
+      if (automationEngine == null) return;
+
+      // Vérifier le compte source
+      if (transaction.sourceAccountId != null) {
+        final sourceAccount = await _accountService.getAccountById(transaction.sourceAccountId!);
+        if (sourceAccount != null) {
+          await automationEngine.triggerBalanceThresholdRules(
+            transaction.entityId,
+            sourceAccount.id,
+            sourceAccount.currentBalance,
+          );
+        }
+      }
+
+      // Vérifier le compte destination
+      if (transaction.destinationAccountId != null) {
+        final destAccount = await _accountService.getAccountById(transaction.destinationAccountId!);
+        if (destAccount != null) {
+          await automationEngine.triggerBalanceThresholdRules(
+            transaction.entityId,
+            destAccount.id,
+            destAccount.currentBalance,
+          );
+        }
+      }
+    } catch (e) {
+      print('Erreur lors de la vérification des seuils de solde: $e');
+    }
+  }
+
+  /// Vérifier les dépassements de budget
+  Future<void> _checkBudgetLimits(TransactionModel transaction) async {
+    try {
+      final automationEngine = _automationEngine;
+      if (automationEngine == null) return;
+
+      if (transaction.budgetId != null) {
+        final budget = await _budgetService.getBudgetById(transaction.budgetId!);
+        if (budget != null && budget.isOverBudget) {
+          print('Budget dépassé détecté: ${budget.name}');
+          await automationEngine.triggerBudgetExceededRules(
+            transaction.entityId,
+            budget.id,
+          );
+        }
+      }
+    } catch (e) {
+      print('Erreur lors de la vérification des limites de budget: $e');
     }
   }
 }

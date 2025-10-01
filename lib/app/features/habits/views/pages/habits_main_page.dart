@@ -8,13 +8,32 @@ import '../widgets/today_habits_widget.dart';
 import '../widgets/quick_actions_widget.dart';
 import '../widgets/habits_drawer.dart';
 
-class HabitsMainPage extends StatelessWidget {
+class HabitsMainPage extends StatefulWidget {
   const HabitsMainPage({super.key});
 
   @override
+  State<HabitsMainPage> createState() => _HabitsMainPageState();
+}
+
+class _HabitsMainPageState extends State<HabitsMainPage> {
+  late HabitsController habitsController;
+  late RoutinesController routinesController;
+
+  @override
+  void initState() {
+    super.initState();
+    habitsController = Get.find<HabitsController>();
+    routinesController = Get.find<RoutinesController>();
+
+    // Charger les habitudes au démarrage
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      habitsController.loadHabits();
+      routinesController.loadRoutines();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final habitsController = Get.find<HabitsController>();
-    final routinesController = Get.find<RoutinesController>();
 
     return Scaffold(
       appBar: AppBar(

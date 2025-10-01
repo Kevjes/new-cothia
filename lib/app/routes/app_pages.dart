@@ -24,6 +24,7 @@ import '../features/finance/views/pages/categories/categories_list_page.dart';
 import '../features/finance/views/pages/objectives/objectives_list_page.dart';
 import '../features/finance/views/pages/analytics/finance_analytics_page.dart';
 import '../features/finance/views/pages/automation/automation_dashboard_page.dart';
+import '../features/finance/bindings/automation_binding.dart';
 import '../features/tasks/bindings/tasks_binding.dart';
 import '../features/tasks/views/pages/tasks_main_page.dart';
 import '../features/tasks/views/pages/tasks_list_page.dart';
@@ -49,6 +50,10 @@ import '../features/habits/views/pages/routines_list_page.dart';
 import '../features/habits/views/pages/routine_form_page.dart';
 import '../features/habits/views/pages/routine_details_page.dart';
 import '../features/habits/views/pages/routine_start_page.dart';
+import '../features/suggestions/bindings/suggestions_binding.dart';
+import '../features/suggestions/views/pages/suggestions_page.dart';
+import '../features/gamification/bindings/gamification_binding.dart';
+import '../features/gamification/views/pages/gamification_main_page.dart';
 
 part 'app_routes.dart';
 
@@ -153,7 +158,7 @@ class AppPages {
     GetPage(
       name: _Paths.FINANCE_AUTOMATION,
       page: () => const AutomationDashboardPage(),
-      binding: FinanceBinding(),
+      binding: AutomationBinding(),
     ),
 
     // Tasks module routes
@@ -289,6 +294,20 @@ class AppPages {
       name: _Paths.HABITS_ROUTINES_START,
       page: () => const RoutineStartPage(),
       binding: RoutinesDetailBinding(),
+    ),
+
+    // Suggestions routes
+    GetPage(
+      name: _Paths.SUGGESTIONS,
+      page: () => const SuggestionsPage(),
+      binding: SuggestionsBinding(),
+    ),
+
+    // Gamification routes
+    GetPage(
+      name: _Paths.GAMIFICATION,
+      page: () => const GamificationMainPage(),
+      binding: GamificationBinding(),
     ),
   ];
 }

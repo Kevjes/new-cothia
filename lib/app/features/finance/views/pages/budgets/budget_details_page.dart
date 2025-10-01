@@ -115,8 +115,6 @@ class BudgetDetailsPage extends StatelessWidget {
             const SizedBox(height: 24),
             _buildPeriodInfo(),
             const SizedBox(height: 24),
-            if (budget!.hasAutomation) _buildAutomationInfo(),
-            if (budget!.hasAutomation) const SizedBox(height: 24),
             _buildQuickActions(),
             const SizedBox(height: 24),
             _buildTransactionHistory(),
@@ -549,76 +547,6 @@ class BudgetDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildAutomationInfo() {
-    final automation = budget!.automationRule!;
-    final controller = Get.find<FinanceController>();
-
-    final sourceAccount = automation.sourceAccountId != null
-        ? controller.accounts.where((a) => a.id == automation.sourceAccountId).firstOrNull
-        : null;
-    final destinationAccount = automation.destinationAccountId != null
-        ? controller.accounts.where((a) => a.id == automation.destinationAccountId).firstOrNull
-        : null;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.auto_mode, color: AppColors.info),
-                const SizedBox(width: 8),
-                Text(
-                  'Automatisation active',
-                  style: Get.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.info,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (sourceAccount != null)
-              _buildInfoRow(
-                'Compte source',
-                sourceAccount.name,
-                Icons.account_balance,
-              ),
-            if (destinationAccount != null) ...[
-              const SizedBox(height: 12),
-              _buildInfoRow(
-                'Compte destination',
-                destinationAccount.name,
-                Icons.savings,
-              ),
-            ],
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              'Montant automatique',
-              '${automation.amount.toStringAsFixed(0)} FCFA',
-              Icons.attach_money,
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              'Jour d\'exécution',
-              '${automation.dayOfMonth} de chaque mois',
-              Icons.today,
-            ),
-            if (automation.description != null && automation.description!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildInfoRow(
-                'Description',
-                automation.description!,
-                Icons.description,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildQuickActions() {
     return Card(

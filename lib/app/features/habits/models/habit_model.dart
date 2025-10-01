@@ -81,7 +81,8 @@ class HabitModel {
   final int targetQuantity; // Quantité cible (ex: 10 pages, 30 minutes)
   final String? unit; // Unité (pages, minutes, fois, etc.)
   final List<int> specificDays; // Jours spécifiques (1-7 pour lun-dim)
-  final TimeOfDay? reminderTime; // Heure de rappel
+  final TimeOfDay? reminderTime; // Heure de rappel globale (pour compatibilité)
+  final Map<int, TimeOfDay>? specificTimes; // Heures spécifiques par jour (1-7 pour lun-dim)
   final bool hasReminder;
   final double? financialImpact; // Impact financier pour mauvaises habitudes
   final DateTime startDate;
@@ -108,6 +109,7 @@ class HabitModel {
     this.unit,
     this.specificDays = const [],
     this.reminderTime,
+    this.specificTimes,
     this.hasReminder = false,
     this.financialImpact,
     required this.startDate,
@@ -185,6 +187,13 @@ class HabitModel {
         'hour': reminderTime!.hour,
         'minute': reminderTime!.minute,
       } : null,
+      'specificTimes': specificTimes?.map((day, time) => MapEntry(
+        day.toString(),
+        {
+          'hour': time.hour,
+          'minute': time.minute,
+        },
+      )),
       'hasReminder': hasReminder,
       'financialImpact': financialImpact,
       'startDate': Timestamp.fromDate(startDate),
@@ -228,6 +237,17 @@ class HabitModel {
               minute: json['reminderTime']['minute'],
             )
           : null,
+      specificTimes: json['specificTimes'] != null
+          ? (json['specificTimes'] as Map<String, dynamic>).map(
+              (dayStr, timeMap) => MapEntry(
+                int.parse(dayStr),
+                TimeOfDay(
+                  hour: timeMap['hour'],
+                  minute: timeMap['minute'],
+                ),
+              ),
+            )
+          : null,
       hasReminder: json['hasReminder'] ?? false,
       financialImpact: json['financialImpact']?.toDouble(),
       startDate: (json['startDate'] as Timestamp).toDate(),
@@ -256,6 +276,7 @@ class HabitModel {
     String? unit,
     List<int>? specificDays,
     TimeOfDay? reminderTime,
+    Map<int, TimeOfDay>? specificTimes,
     bool? hasReminder,
     double? financialImpact,
     DateTime? startDate,
@@ -282,6 +303,7 @@ class HabitModel {
       unit: unit ?? this.unit,
       specificDays: specificDays ?? this.specificDays,
       reminderTime: reminderTime ?? this.reminderTime,
+      specificTimes: specificTimes ?? this.specificTimes,
       hasReminder: hasReminder ?? this.hasReminder,
       financialImpact: financialImpact ?? this.financialImpact,
       startDate: startDate ?? this.startDate,

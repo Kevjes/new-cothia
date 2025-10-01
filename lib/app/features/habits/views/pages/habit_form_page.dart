@@ -29,6 +29,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
   List<int> _selectedDays = [];
   bool _hasReminder = false;
   TimeOfDay? _reminderTime;
+  Map<int, TimeOfDay> _specificTimes = {}; // Heures spécifiques par jour
+  bool _useSpecificTimes = false; // Activer les heures spécifiques
   bool _isLoading = false;
 
   @override
@@ -63,8 +65,10 @@ class _HabitFormPageState extends State<HabitFormPage> {
       _selectedIcon = habit.icon;
       _selectedColor = habit.color;
       _selectedDays = habit.specificDays;
-      _hasReminder = habit.reminderTime != null;
+      _hasReminder = habit.reminderTime != null || (habit.specificTimes?.isNotEmpty ?? false);
       _reminderTime = habit.reminderTime;
+      _specificTimes = habit.specificTimes ?? {};
+      _useSpecificTimes = habit.specificTimes?.isNotEmpty ?? false;
     }
   }
 
@@ -317,33 +321,119 @@ class _HabitFormPageState extends State<HabitFormPage> {
 
               const SizedBox(height: 16),
 
-              // Reminder Section
+              // Reminder Section - NOUVELLE VERSION AMÉLIORÉE
               _buildSectionCard(
-                title: 'Rappel',
+                title: '🔔 Rappels et Heures',
                 children: [
-                  SwitchListTile(
-                    title: const Text('Activer les rappels'),
-                    subtitle: _hasReminder && _reminderTime != null
-                        ? Text('${_reminderTime!.format(context)}')
-                        : const Text('Aucun rappel configuré'),
-                    value: _hasReminder,
-                    onChanged: (value) {
-                      setState(() {
-                        _hasReminder = value;
-                        if (!value) {
-                          _reminderTime = null;
-                        }
-                      });
-                    },
+                  // Switch principal pour activer les rappels
+                  Card(
+                    color: _hasReminder ? Colors.blue.withOpacity(0.1) : null,
+                    child: SwitchListTile(
+                      title: const Text('Activer les rappels'),
+                      subtitle: _buildReminderSubtitle(),
+                      value: _hasReminder,
+                      onChanged: (value) {
+                        setState(() {
+                          _hasReminder = value;
+                          if (!value) {
+                            _reminderTime = null;
+                            _specificTimes.clear();
+                            _useSpecificTimes = false;
+                          }
+                        });
+                      },
+                    ),
                   ),
+
+                  // Options d'heures (visible seulement si rappels activés)
                   if (_hasReminder) ...[
-                    const SizedBox(height: 8),
-                    ListTile(
-                      leading: const Icon(Icons.access_time),
-                      title: Text(_reminderTime != null
-                          ? 'Heure: ${_reminderTime!.format(context)}'
-                          : 'Choisir l\'heure'),
-                      onTap: () => _selectReminderTime(),
+                    const SizedBox(height: 16),
+
+                    // Mode simple : une heure pour tous les jours
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: !_useSpecificTimes ? Colors.blue : Colors.grey,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                          RadioListTile<bool>(
+                            title: const Text('🕐 Heure fixe pour tous les jours'),
+                            subtitle: const Text('Même heure chaque jour'),
+                            value: false,
+                            groupValue: _useSpecificTimes,
+                            onChanged: (value) {
+                              setState(() {
+                                _useSpecificTimes = false;
+                                _specificTimes.clear();
+                              });
+                            },
+                          ),
+                          if (!_useSpecificTimes) ...[
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.access_time, color: Colors.blue),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Text(
+                                      _reminderTime != null
+                                          ? 'Heure sélectionnée: ${_reminderTime!.format(context)}'
+                                          : 'Aucune heure sélectionnée',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: _reminderTime != null ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => _selectReminderTime(),
+                                    child: Text(_reminderTime != null ? 'Modifier' : 'Choisir'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Mode avancé : heures spécifiques par jour
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: _useSpecificTimes ? Colors.orange : Colors.grey,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                          RadioListTile<bool>(
+                            title: const Text('⏰ Heures personnalisées par jour'),
+                            subtitle: const Text('Différentes heures selon les jours'),
+                            value: true,
+                            groupValue: _useSpecificTimes,
+                            onChanged: (value) {
+                              setState(() {
+                                _useSpecificTimes = true;
+                                _reminderTime = null;
+                              });
+                            },
+                          ),
+                          if (_useSpecificTimes) ...[
+                            const Divider(),
+                            _buildSpecificTimesSection(),
+                            const SizedBox(height: 16),
+                          ],
+                        ],
+                      ),
                     ),
                   ],
                 ],
@@ -609,7 +699,8 @@ class _HabitFormPageState extends State<HabitFormPage> {
             : _unitController.text.trim(),
         icon: _selectedIcon,
         color: _selectedColor,
-        reminderTime: _hasReminder ? _reminderTime : null,
+        reminderTime: _hasReminder && !_useSpecificTimes ? _reminderTime : null,
+        specificTimes: _hasReminder && _useSpecificTimes ? _specificTimes : null,
         financialImpact: financialImpact,
         entityId: '', // Will be set by controller
         status: _originalHabit?.status ?? HabitStatus.active,
@@ -640,6 +731,219 @@ class _HabitFormPageState extends State<HabitFormPage> {
     } finally {
       setState(() {
         _isLoading = false;
+      });
+    }
+  }
+
+  // Helper methods for specific times functionality
+  Widget _buildReminderSubtitle() {
+    if (!_hasReminder) {
+      return const Text('Aucun rappel configuré');
+    }
+
+    if (_useSpecificTimes && _specificTimes.isNotEmpty) {
+      return Text('${_specificTimes.length} jour(s) avec heures spécifiques');
+    }
+
+    if (_reminderTime != null) {
+      return Text('${_reminderTime!.format(context)}');
+    }
+
+    return const Text('Rappel activé');
+  }
+
+  Widget _buildSpecificTimesSection() {
+    final dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    final dayNamesShort = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.schedule, color: Colors.orange),
+              const SizedBox(width: 8),
+              const Text(
+                'Configurez vos heures par jour:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Cochez les jours et définissez une heure pour chacun',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Liste des jours avec interface améliorée
+          ...List.generate(7, (index) {
+            final day = index + 1; // 1 = Lundi, 7 = Dimanche
+            final hasTime = _specificTimes.containsKey(day);
+            final time = _specificTimes[day];
+
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: hasTime ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: hasTime ? Colors.orange : Colors.grey.withOpacity(0.3),
+                  width: hasTime ? 2 : 1,
+                ),
+              ),
+              child: ListTile(
+                leading: Checkbox(
+                  value: hasTime,
+                  activeColor: Colors.orange,
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == true) {
+                        _specificTimes[day] = TimeOfDay.now();
+                      } else {
+                        _specificTimes.remove(day);
+                      }
+                    });
+                  },
+                ),
+                title: Row(
+                  children: [
+                    SizedBox(
+                      width: 80,
+                      child: Text(
+                        dayNamesShort[index],
+                        style: TextStyle(
+                          fontWeight: hasTime ? FontWeight.bold : FontWeight.normal,
+                          color: hasTime ? Colors.orange : null,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        dayNames[index],
+                        style: TextStyle(
+                          fontWeight: hasTime ? FontWeight.w500 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: hasTime && time != null
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '⏰ ${time.format(context)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        hasTime ? 'Cliquez pour définir l\'heure' : 'Jour non sélectionné',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                trailing: hasTime
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.access_time, color: Colors.orange),
+                            tooltip: 'Modifier l\'heure',
+                            onPressed: () => _selectSpecificTime(day),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.red),
+                            tooltip: 'Supprimer',
+                            onPressed: () {
+                              setState(() {
+                                _specificTimes.remove(day);
+                              });
+                            },
+                          ),
+                        ],
+                      )
+                    : null,
+                onTap: hasTime ? () => _selectSpecificTime(day) : null,
+              ),
+            );
+          }),
+
+          const SizedBox(height: 16),
+
+          // Résumé des heures configurées
+          if (_specificTimes.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Résumé: ${_specificTimes.length} jour(s) configuré(s)',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: _specificTimes.entries.map((entry) {
+                      final dayName = dayNamesShort[entry.key - 1];
+                      final time = entry.value.format(context);
+                      return Chip(
+                        label: Text('$dayName: $time'),
+                        backgroundColor: Colors.orange.withOpacity(0.2),
+                        labelStyle: const TextStyle(fontSize: 12),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectSpecificTime(int day) async {
+    final currentTime = _specificTimes[day] ?? TimeOfDay.now();
+    final time = await showTimePicker(
+      context: context,
+      initialTime: currentTime,
+    );
+
+    if (time != null) {
+      setState(() {
+        _specificTimes[day] = time;
       });
     }
   }

@@ -31,13 +31,7 @@ class _BudgetCreatePageState extends State<BudgetCreatePage> {
   DateTime? _endDate;
   late bool _isActive;
 
-  // Automation fields
-  bool _hasAutomation = false;
-  String? _sourceAccountId;
-  String? _destinationAccountId;
-  final _automationAmountController = TextEditingController();
-  int _dayOfMonth = 1;
-  final _automationDescriptionController = TextEditingController();
+  // Automation fields removed - now handled in dedicated automation module
 
   @override
   void initState() {
@@ -57,15 +51,7 @@ class _BudgetCreatePageState extends State<BudgetCreatePage> {
       _endDate = budget.endDate;
       _isActive = budget.isActive;
 
-      // Automation
-      if (budget.automationRule != null) {
-        _hasAutomation = budget.automationRule!.isEnabled;
-        _sourceAccountId = budget.automationRule!.sourceAccountId;
-        _destinationAccountId = budget.automationRule!.destinationAccountId;
-        _automationAmountController.text = budget.automationRule!.amount.toStringAsFixed(0);
-        _dayOfMonth = budget.automationRule!.dayOfMonth;
-        _automationDescriptionController.text = budget.automationRule!.description ?? '';
-      }
+      // Automation section removed - now handled in dedicated module
 
       // Category
       if (budget.categoryId != null) {
@@ -87,8 +73,6 @@ class _BudgetCreatePageState extends State<BudgetCreatePage> {
     _nameController.dispose();
     _descriptionController.dispose();
     _targetAmountController.dispose();
-    _automationAmountController.dispose();
-    _automationDescriptionController.dispose();
     super.dispose();
   }
 
@@ -130,8 +114,7 @@ class _BudgetCreatePageState extends State<BudgetCreatePage> {
               const SizedBox(height: 24),
               _buildDatesSection(),
               const SizedBox(height: 24),
-              _buildAutomationSection(),
-              const SizedBox(height: 24),
+              // Automation section removed - use dedicated automation module
               _buildSettingsSection(),
             ],
           ),
@@ -223,30 +206,6 @@ class _BudgetCreatePageState extends State<BudgetCreatePage> {
                 minHeight: 8,
               ),
             ),
-            if (_hasAutomation) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.info.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.auto_mode, color: AppColors.info, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Automatisation activée',
-                      style: Get.textTheme.bodySmall?.copyWith(
-                        color: AppColors.info,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -538,145 +497,7 @@ class _BudgetCreatePageState extends State<BudgetCreatePage> {
     );
   }
 
-  Widget _buildAutomationSection() {
-    final controller = Get.find<AccountsController>();
-    final accounts = controller.accounts.where((a) => a.isActive).toList();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Automatisation',
-                    style: Get.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Switch(
-                  value: _hasAutomation,
-                  onChanged: (value) {
-                    setState(() {
-                      _hasAutomation = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            if (_hasAutomation) ...[
-              const SizedBox(height: 16),
-              Text(
-                'Configuration automatique',
-                style: Get.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.hint,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String?>(
-                      value: _sourceAccountId,
-                      decoration: const InputDecoration(
-                        labelText: 'Compte source',
-                        prefixIcon: Icon(Icons.account_balance),
-                      ),
-                      items: accounts.map((account) {
-                        return DropdownMenuItem<String?>(
-                          value: account.id,
-                          child: Text(account.name),
-                        );
-                      }).toList(),
-                      onChanged: (String? value) {
-                        setState(() {
-                          _sourceAccountId = value;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<String?>(
-                      value: _destinationAccountId,
-                      decoration: const InputDecoration(
-                        labelText: 'Compte destination',
-                        prefixIcon: Icon(Icons.savings),
-                      ),
-                      items: accounts.map((account) {
-                        return DropdownMenuItem<String?>(
-                          value: account.id,
-                          child: Text(account.name),
-                        );
-                      }).toList(),
-                      onChanged: (String? value) {
-                        setState(() {
-                          _destinationAccountId = value;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _automationAmountController,
-                      decoration: const InputDecoration(
-                        labelText: 'Montant',
-                        prefixIcon: Icon(Icons.attach_money),
-                        suffixText: 'FCFA',
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      value: _dayOfMonth,
-                      decoration: const InputDecoration(
-                        labelText: 'Jour du mois',
-                        prefixIcon: Icon(Icons.today),
-                      ),
-                      items: List.generate(28, (index) {
-                        final day = index + 1;
-                        return DropdownMenuItem<int>(
-                          value: day,
-                          child: Text(day.toString()),
-                        );
-                      }),
-                      onChanged: (int? value) {
-                        if (value != null) {
-                          setState(() {
-                            _dayOfMonth = value;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _automationDescriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description de l\'automatisation',
-                  prefixIcon: Icon(Icons.description),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  // Automation section removed - use dedicated automation module instead
 
   Widget _buildSettingsSection() {
     return Card(
@@ -760,20 +581,7 @@ class _BudgetCreatePageState extends State<BudgetCreatePage> {
     final isEditing = widget.budget != null;
 
     try {
-      AutomationRule? automationRule;
-      if (_hasAutomation) {
-        final automationAmount = double.tryParse(_automationAmountController.text) ?? 0.0;
-        automationRule = AutomationRule(
-          isEnabled: true,
-          sourceAccountId: _sourceAccountId,
-          destinationAccountId: _destinationAccountId,
-          amount: automationAmount,
-          dayOfMonth: _dayOfMonth,
-          description: _automationDescriptionController.text.trim().isEmpty
-              ? null
-              : _automationDescriptionController.text.trim(),
-        );
-      }
+      // Automation handling removed - use dedicated automation module
 
       final budgetData = BudgetModel(
         id: isEditing ? widget.budget!.id : '',
@@ -789,7 +597,6 @@ class _BudgetCreatePageState extends State<BudgetCreatePage> {
         categoryId: _selectedCategory?.id,
         currency: 'FCFA',
         isActive: _isActive,
-        automationRule: automationRule,
         startDate: _startDate,
         endDate: _endDate,
         createdAt: isEditing ? widget.budget!.createdAt : DateTime.now(),

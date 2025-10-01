@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
 import '../models/habit_model.dart';
 import '../models/habit_completion_model.dart';
 
-class HabitService {
+class HabitService extends GetxService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'habits';
   final String _completionsCollection = 'habit_completions';
@@ -14,12 +15,23 @@ class HabitService {
   /// Créer une nouvelle habitude
   Future<bool> createHabit(HabitModel habit) async {
     try {
+      print('DEBUG Service: Creating habit in Firebase');
+      print('DEBUG Service: Collection: $_collection');
+      print('DEBUG Service: Habit entityId: ${habit.entityId}');
+
       final docRef = _firestore.collection(_collection).doc();
       final habitWithId = habit.copyWith(id: docRef.id);
+
+      print('DEBUG Service: Document ID: ${docRef.id}');
+      print('DEBUG Service: Final habit data: ${habitWithId.toJson()}');
+
       await docRef.set(habitWithId.toJson());
+
+      print('DEBUG Service: Habit saved successfully');
       return true;
     } catch (e) {
-      print('Erreur lors de la création de l\'habitude: $e');
+      print('DEBUG Service: Error creating habit: $e');
+      print('DEBUG Service: Error type: ${e.runtimeType}');
       return false;
     }
   }

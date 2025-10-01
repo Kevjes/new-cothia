@@ -6,7 +6,10 @@ import '../../../features/auth/controllers/auth_controller.dart';
 import '../../../features/finance/controllers/finance_controller.dart';
 import '../../../features/tasks/controllers/tasks_controller.dart';
 import '../../../features/entities/controllers/entities_controller.dart';
+import '../../../features/habits/controllers/habits_controller.dart';
+import '../../../features/suggestions/controllers/suggestions_controller.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/suggestion_model.dart';
 import '../../../routes/app_pages.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -31,6 +34,8 @@ class HomeView extends GetView<HomeController> {
                   _buildGlobalStats(),
                   const SizedBox(height: 32),
                   _buildQuickActions(),
+                  const SizedBox(height: 32),
+                  _buildAISuggestions(),
                   const SizedBox(height: 32),
                   _buildModulesSection(),
                   const SizedBox(height: 32),
@@ -247,6 +252,7 @@ class HomeView extends GetView<HomeController> {
       final financeController = Get.find<FinanceController>();
       final tasksController = Get.find<TasksController>();
       final entitiesController = Get.find<EntitiesController>();
+      final habitsController = Get.find<HabitsController>();
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,6 +282,7 @@ class HomeView extends GetView<HomeController> {
             ],
           ),
           const SizedBox(height: 20),
+          // First row of stats
           Row(
             children: [
               Expanded(
@@ -295,12 +302,26 @@ class HomeView extends GetView<HomeController> {
                   Icons.task_alt,
                 )),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Second row of stats
+          Row(
+            children: [
+              Expanded(
+                child: Obx(() => _buildStatCard(
+                  'Habitudes',
+                  '${habitsController.totalHabits}',
+                  AppColors.info,
+                  Icons.trending_up,
+                )),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Obx(() => _buildStatCard(
                   'Entités',
                   '${entitiesController.entities.length}',
-                  AppColors.info,
+                  AppColors.secondary,
                   Icons.business,
                 )),
               ),
@@ -522,40 +543,73 @@ class HomeView extends GetView<HomeController> {
           ],
         ),
         const SizedBox(height: 20),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+        Column(
           children: [
-            _buildModuleCard(
-              title: 'Entités',
-              subtitle: 'Gérer vos entités',
-              icon: Icons.business,
-              color: AppColors.primary,
-              onTap: () => Get.toNamed(Routes.ENTITIES),
+            // Première ligne avec 2 modules
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModuleCard(
+                    title: 'Entités',
+                    subtitle: 'Gérer vos entités',
+                    icon: Icons.business,
+                    color: AppColors.primary,
+                    onTap: () => Get.toNamed(Routes.ENTITIES),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildModuleCard(
+                    title: 'Finances',
+                    subtitle: 'Comptes et budgets',
+                    icon: Icons.account_balance_wallet,
+                    color: AppColors.secondary,
+                    onTap: () => Get.toNamed(Routes.FINANCE),
+                  ),
+                ),
+              ],
             ),
-            _buildModuleCard(
-              title: 'Finances',
-              subtitle: 'Comptes et budgets',
-              icon: Icons.account_balance_wallet,
-              color: AppColors.secondary,
-              onTap: () => Get.toNamed(Routes.FINANCE),
+            const SizedBox(height: 16),
+            // Deuxième ligne avec 2 modules
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModuleCard(
+                    title: 'Tâches',
+                    subtitle: 'Gérer vos tâches',
+                    icon: Icons.task_alt,
+                    color: AppColors.success,
+                    onTap: () => Get.toNamed(Routes.TASKS),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildModuleCard(
+                    title: 'Habitudes',
+                    subtitle: 'Suivi des habitudes',
+                    icon: Icons.trending_up,
+                    color: AppColors.info,
+                    onTap: () => Get.toNamed(Routes.HABITS),
+                  ),
+                ),
+              ],
             ),
-            _buildModuleCard(
-              title: 'Tâches',
-              subtitle: 'Gérer vos tâches',
-              icon: Icons.task_alt,
-              color: AppColors.success,
-              onTap: () => Get.toNamed(Routes.TASKS),
-            ),
-            _buildModuleCard(
-              title: 'Habitudes',
-              subtitle: 'Suivi des habitudes',
-              icon: Icons.trending_up,
-              color: AppColors.info,
-              onTap: () => Get.toNamed(Routes.HABITS),
+            const SizedBox(height: 16),
+            // Troisième ligne avec le module gamification centré
+            Row(
+              children: [
+                const Expanded(child: SizedBox()),
+                Expanded(
+                  child: _buildModuleCard(
+                    title: 'Gamification',
+                    subtitle: 'Points & défis',
+                    icon: Icons.emoji_events,
+                    color: Colors.amber,
+                    onTap: () => Get.toNamed(Routes.GAMIFICATION),
+                  ),
+                ),
+                const Expanded(child: SizedBox()),
+              ],
             ),
           ],
         ),
@@ -764,6 +818,304 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
+  Widget _buildAISuggestions() {
+    try {
+      final suggestionsController = Get.find<SuggestionsController>();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.psychology,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Suggestions IA',
+                style: Get.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const Spacer(),
+              Obx(() => suggestionsController.isAnalyzing
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : TextButton(
+                    onPressed: () => Get.toNamed(Routes.SUGGESTIONS),
+                    child: const Text('Voir tout'),
+                  ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Obx(() {
+            final prioritySuggestions = suggestionsController.prioritySuggestions;
+
+            if (suggestionsController.isAnalyzing) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Analyse en cours...',
+                            style: Get.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const Text(
+                            'L\'IA analyse vos données pour générer des suggestions personnalisées',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (prioritySuggestions.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 32,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Excellent travail !',
+                            style: Get.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const Text(
+                            'Aucune suggestion prioritaire pour le moment. Vous gérez bien vos finances et votre productivité !',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              children: prioritySuggestions.take(2).map((suggestion) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        _getSuggestionColor(suggestion.type).withValues(alpha: 0.1),
+                        _getSuggestionColor(suggestion.type).withValues(alpha: 0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _getSuggestionColor(suggestion.type).withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: () => suggestionsController.showSuggestionDetails(suggestion),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                suggestion.type.emoji,
+                                style: const TextStyle(fontSize: 24),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  suggestion.title,
+                                  style: Get.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: _getSuggestionColor(suggestion.type),
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: _getPrioritySuggestionColor(suggestion.priority),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  suggestion.priority.displayName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            suggestion.description,
+                            style: Get.textTheme.bodyMedium?.copyWith(
+                              color: Colors.white,
+                              height: 1.4,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => suggestionsController.dismissSuggestion(suggestion),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: Colors.grey[600]!),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Text('Ignorer'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () => suggestionsController.applySuggestion(suggestion),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _getSuggestionColor(suggestion.type),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: Text(suggestion.action.label),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          }),
+        ],
+      );
+    } catch (e) {
+      // Si le contrôleur des suggestions n'est pas disponible, on affiche un message simple
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.psychology_outlined,
+              color: AppColors.primary,
+              size: 32,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'IA Suggestions',
+                    style: Get.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Text(
+                    'Suggestions intelligentes disponibles bientôt',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Color _getSuggestionColor(SuggestionType type) {
+    switch (type) {
+      case SuggestionType.financial:
+        return AppColors.success;
+      case SuggestionType.productivity:
+        return AppColors.warning;
+      case SuggestionType.habit:
+        return AppColors.info;
+      case SuggestionType.crossModule:
+        return AppColors.secondary;
+      case SuggestionType.general:
+        return AppColors.primary;
+    }
+  }
+
+  Color _getPrioritySuggestionColor(SuggestionPriority priority) {
+    switch (priority) {
+      case SuggestionPriority.low:
+        return Colors.green;
+      case SuggestionPriority.medium:
+        return Colors.orange;
+      case SuggestionPriority.high:
+        return Colors.red;
+      case SuggestionPriority.critical:
+        return Colors.deepPurple;
+    }
+  }
+
   Widget _buildInsights() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -868,11 +1220,13 @@ class HomeView extends GetView<HomeController> {
       final financeController = Get.find<FinanceController>();
       final tasksController = Get.find<TasksController>();
       final entitiesController = Get.find<EntitiesController>();
+      final habitsController = Get.find<HabitsController>();
 
       await Future.wait([
         financeController.refreshAllData(),
         tasksController.loadTasks(),
         entitiesController.loadEntities(),
+        habitsController.loadHabits(),
       ]);
 
       Get.snackbar(

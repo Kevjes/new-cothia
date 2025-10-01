@@ -54,6 +54,12 @@ abstract class Routes {
   static const HABITS_ROUTINES_EDIT = _Paths.HABITS_ROUTINES_EDIT;
   static const HABITS_ROUTINES_DETAILS = _Paths.HABITS_ROUTINES_DETAILS;
   static const HABITS_ROUTINES_START = _Paths.HABITS_ROUTINES_START;
+
+  // Suggestions
+  static const SUGGESTIONS = _Paths.SUGGESTIONS;
+
+  // Gamification module routes
+  static const GAMIFICATION = _Paths.GAMIFICATION;
 }
 
 abstract class _Paths {
@@ -109,4 +115,10 @@ abstract class _Paths {
   static const HABITS_ROUTINES_EDIT = '/habits/routines/edit';
   static const HABITS_ROUTINES_DETAILS = '/habits/routines/details';
   static const HABITS_ROUTINES_START = '/habits/routines/start';
+
+  // Suggestions
+  static const SUGGESTIONS = '/suggestions';
+
+  // Gamification module paths
+  static const GAMIFICATION = '/gamification';
 }

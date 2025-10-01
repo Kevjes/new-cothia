@@ -15,6 +15,7 @@ class TaskService extends GetxService {
 
   // Getters
   List<TaskModel> get tasks => _tasks;
+  RxList<TaskModel> get tasksObservable => _tasks;
 
   // Setter pour permettre la modification de la liste (pour le tri)
   set tasks(List<TaskModel> newTasks) {

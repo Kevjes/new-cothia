@@ -3,6 +3,9 @@ import 'package:get/get.dart';
 import '../../controllers/entities_controller.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/models/entity_model.dart';
+import 'entity_statistics_page.dart';
+import 'entities_list_page.dart';
+import 'entity_form_page.dart';
 
 class EntitiesOverviewPage extends GetView<EntitiesController> {
   const EntitiesOverviewPage({super.key});
@@ -545,15 +548,15 @@ class EntitiesOverviewPage extends GetView<EntitiesController> {
 
   // Action methods
   void _createEntity() {
-    Get.snackbar('Info', 'Créer entité - À implémenter');
+    Get.to(() => const EntityFormPage());
   }
 
   void _viewAllEntities() {
-    Get.snackbar('Info', 'Liste entités - À implémenter');
+    Get.to(() => const EntitiesListPage());
   }
 
   void _viewStatistics() {
-    Get.snackbar('Info', 'Statistiques - À implémenter');
+    Get.to(() => const EntityStatisticsPage());
   }
 
   void _openSettings() {

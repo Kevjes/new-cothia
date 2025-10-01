@@ -255,6 +255,31 @@ class BudgetsController extends GetxController {
     }
   }
 
+  // Update budget automation rule
+  Future<bool> updateBudgetAutomation(String budgetId, AutomationRule automationRule) async {
+    try {
+      await _budgetService.updateBudgetAutomation(budgetId, automationRule);
+
+      // Update local budget
+      final index = _budgets.indexWhere((b) => b.id == budgetId);
+      if (index != -1) {
+        final budget = _budgets[index];
+        final updatedBudget = budget.copyWith(
+          automationRule: automationRule,
+          updatedAt: DateTime.now(),
+        );
+        _budgets[index] = updatedBudget;
+        _budgets.refresh();
+      }
+
+      await _calculateStats();
+      return true;
+    } catch (e) {
+      Get.snackbar('Erreur', 'Erreur lors de la suppression de la dépense: $e');
+      return false;
+    }
+  }
+
   // Search and filter methods
   void setSearchTerm(String term) {
     _searchTerm.value = term;

@@ -351,4 +351,16 @@ class BudgetService {
   Future<void> removeExpenseFromBudget(String budgetId, double amount) async {
     await subtractFromBudgetAmount(budgetId, amount);
   }
+
+  // Mettre à jour la règle d'automatisation d'un budget
+  Future<void> updateBudgetAutomation(String budgetId, AutomationRule automationRule) async {
+    try {
+      await _firestore.collection(_collection).doc(budgetId).update({
+        'automationRule': automationRule.toJson(),
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+    } catch (e) {
+      throw Exception('Erreur lors de la mise à jour de l\'automatisation du budget: $e');
+    }
+  }
 }

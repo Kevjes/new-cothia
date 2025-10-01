@@ -19,6 +19,7 @@ class EntitiesController extends GetxController {
   bool get isLoading => _isLoading.value;
   List<EntityModel> get entities => _entities;
   EntityModel? get currentEntity => _currentEntity.value;
+  Rxn<EntityModel> get currentEntityObservable => _currentEntity;
   RxString get selectedEntityId => _selectedEntityId;
   EntityModel? get personalEntity => _entities.where((e) => e.isPersonal).firstOrNull;
   bool get hasError => _hasError.value;

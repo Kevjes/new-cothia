@@ -37,6 +37,7 @@ class TaskModel {
   final double? actualDuration; // En heures
   final String? notes;
   final List<String> attachments; // URLs des fichiers attachés
+  final Map<String, dynamic>? metadata; // Données supplémentaires
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -62,6 +63,7 @@ class TaskModel {
     this.actualDuration,
     this.notes,
     this.attachments = const [],
+    this.metadata,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -204,6 +206,7 @@ class TaskModel {
       'actualDuration': actualDuration,
       'notes': notes,
       'attachments': attachments,
+      'metadata': metadata,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
     };
@@ -244,6 +247,7 @@ class TaskModel {
       actualDuration: json['actualDuration']?.toDouble(),
       notes: json['notes'],
       attachments: List<String>.from(json['attachments'] ?? []),
+      metadata: json['metadata'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt']),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(json['updatedAt']),
     );
@@ -272,6 +276,7 @@ class TaskModel {
     double? actualDuration,
     String? notes,
     List<String>? attachments,
+    Map<String, dynamic>? metadata,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -297,6 +302,7 @@ class TaskModel {
       actualDuration: actualDuration ?? this.actualDuration,
       notes: notes ?? this.notes,
       attachments: attachments ?? this.attachments,
+      metadata: metadata ?? this.metadata,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

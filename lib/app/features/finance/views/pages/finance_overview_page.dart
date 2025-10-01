@@ -705,28 +705,19 @@ class FinanceOverviewPage extends GetView<FinanceController> {
                     children: [
                       Expanded(
                         child: _buildAutomationStat(
-                          'En attente',
-                          automationController.totalPendingAutomations.toString(),
-                          Icons.schedule,
-                          AppColors.secondary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildAutomationStat(
-                          'Aujourd\'hui',
-                          automationController.automationsToday.toString(),
-                          Icons.today,
-                          AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildAutomationStat(
-                          'Montant total',
-                          '${automationController.totalPendingAmount.toStringAsFixed(0)} FCFA',
-                          Icons.monetization_on,
+                          'Règles actives',
+                          automationController.activeRulesCount.toString(),
+                          Icons.check_circle,
                           AppColors.success,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildAutomationStat(
+                          'Total',
+                          automationController.totalRules.toString(),
+                          Icons.auto_awesome,
+                          AppColors.primary,
                         ),
                       ),
                     ],
@@ -734,26 +725,6 @@ class FinanceOverviewPage extends GetView<FinanceController> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: automationController.isExecuting
-                              ? null
-                              : () => automationController.executeAllAutomations(showProgress: false),
-                          icon: automationController.isExecuting
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.play_arrow),
-                          label: const Text('Exécuter'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => Get.to(() => const AutomationDashboardPage()),
@@ -903,8 +874,14 @@ class FinanceOverviewPage extends GetView<FinanceController> {
             );
           }
 
+          // Prioriser les favoris, sinon prendre les 3 premiers
+          final favoriteAccounts = controller.accounts.where((a) => a.isFavorite).toList();
+          final displayAccounts = favoriteAccounts.isNotEmpty
+              ? favoriteAccounts.take(3).toList()
+              : controller.accounts.take(3).toList();
+
           return Column(
-            children: controller.accounts.take(3).map((account) => _buildAccountCard(account)).toList(),
+            children: displayAccounts.map((account) => _buildAccountCard(account)).toList(),
           );
         }),
       ],
@@ -915,15 +892,15 @@ class FinanceOverviewPage extends GetView<FinanceController> {
     final balanceColor = account.currentBalance >= 0 ? AppColors.success : AppColors.error;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -931,47 +908,58 @@ class FinanceOverviewPage extends GetView<FinanceController> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _viewAccountDetails(account),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.secondary.withValues(alpha: 0.2),
-                        AppColors.secondary.withValues(alpha: 0.1),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                // Icône avec favori
+                Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        _getAccountIcon(account.type),
+                        color: AppColors.secondary,
+                        size: 20,
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    _getAccountIcon(account.type),
-                    color: AppColors.secondary,
-                    size: 24,
-                  ),
+                    if (account.isFavorite)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Icon(
+                          Icons.star,
+                          color: Colors.amber,
+                          size: 14,
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         account.name,
-                        style: Get.textTheme.titleMedium?.copyWith(
+                        style: Get.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         account.typeDisplayName,
-                        style: Get.textTheme.bodyMedium?.copyWith(
+                        style: Get.textTheme.bodySmall?.copyWith(
                           color: AppColors.hint,
+                          fontSize: 11,
                         ),
                       ),
                     ],
@@ -982,28 +970,18 @@ class FinanceOverviewPage extends GetView<FinanceController> {
                   children: [
                     Text(
                       '${account.currentBalance.toStringAsFixed(0)} FCFA',
-                      style: Get.textTheme.titleMedium?.copyWith(
+                      style: Get.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: balanceColor,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: balanceColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        account.currentBalance >= 0 ? 'Positif' : 'Négatif',
-                        style: TextStyle(
-                          color: balanceColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
                   ],
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right,
+                  color: AppColors.hint,
+                  size: 18,
                 ),
               ],
             ),

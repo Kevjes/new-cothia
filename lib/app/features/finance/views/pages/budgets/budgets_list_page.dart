@@ -27,9 +27,6 @@ class BudgetsListPage extends GetView<BudgetsController> {
                 case 'templates':
                   _showBudgetTemplates();
                   break;
-                case 'automation':
-                  _showAutomationSettings();
-                  break;
               }
             },
             itemBuilder: (context) => [
@@ -40,16 +37,6 @@ class BudgetsListPage extends GetView<BudgetsController> {
                     Icon(Icons.list_alt_outlined, size: 20),
                     SizedBox(width: 8),
                     Text('Modèles'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'automation',
-                child: Row(
-                  children: [
-                    Icon(Icons.auto_mode, size: 20),
-                    SizedBox(width: 8),
-                    Text('Automatisation'),
                   ],
                 ),
               ),
@@ -532,30 +519,6 @@ class BudgetsListPage extends GetView<BudgetsController> {
                 ),
               ],
 
-              if (budget.hasAutomation) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.info.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.info.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.auto_mode, color: AppColors.info, size: 16),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Automatisation active',
-                        style: Get.textTheme.bodySmall?.copyWith(
-                          color: AppColors.info,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -721,48 +684,4 @@ class BudgetsListPage extends GetView<BudgetsController> {
     );
   }
 
-  void _showAutomationSettings() {
-    showDialog(
-      context: Get.context!,
-      builder: (context) => AlertDialog(
-        title: const Text('Paramètres d\'automatisation'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SwitchListTile(
-              title: const Text('Notifications budgets dépassés'),
-              subtitle: const Text('Être alerté quand un budget est dépassé'),
-              value: true,
-              onChanged: (value) {},
-            ),
-            SwitchListTile(
-              title: const Text('Allocation automatique mensuelle'),
-              subtitle: const Text('Répartir automatiquement chaque mois'),
-              value: false,
-              onChanged: (value) {},
-            ),
-            SwitchListTile(
-              title: const Text('Rapports hebdomadaires'),
-              subtitle: const Text('Recevoir un résumé chaque semaine'),
-              value: true,
-              onChanged: (value) {},
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Get.snackbar('Succès', 'Paramètres sauvegardés');
-            },
-            child: const Text('Sauvegarder'),
-          ),
-        ],
-      ),
-    );
-  }
 }

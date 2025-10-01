@@ -57,6 +57,7 @@ class HabitsController extends GetxController {
 
   // Getters pour les statistiques
   List<HabitModel> get allHabits => _habits;
+  RxList<HabitModel> get habitsObservable => _habits;
   List<HabitModel> get activeHabits => _habits.where((h) => h.status == HabitStatus.active).toList();
   List<HabitModel> get goodHabits => _habits.where((h) => h.type == HabitType.good).toList();
   List<HabitModel> get badHabits => _habits.where((h) => h.type == HabitType.bad).toList();
@@ -87,8 +88,32 @@ class HabitsController extends GetxController {
     try {
       final entitiesController = Get.find<EntitiesController>();
       selectedEntityId.value = entitiesController.personalEntity?.id ?? '';
+
+      // Charger les habitudes si l'entité est trouvée
+      if (selectedEntityId.value.isNotEmpty) {
+        loadHabits();
+      }
     } catch (e) {
       print('EntitiesController not found: $e');
+      // Essayer de trouver une entité par défaut ou créer une temporaire
+      _setDefaultEntity();
+    }
+  }
+
+  void _setDefaultEntity() async {
+    // En attendant que l'EntitiesController soit disponible
+    try {
+      await Future.delayed(Duration(seconds: 1));
+      final entitiesController = Get.find<EntitiesController>();
+      selectedEntityId.value = entitiesController.personalEntity?.id ?? '';
+
+      if (selectedEntityId.value.isNotEmpty) {
+        loadHabits();
+      } else {
+        print('No personal entity found');
+      }
+    } catch (e) {
+      print('Still no EntitiesController available: $e');
     }
   }
 
@@ -153,22 +178,38 @@ class HabitsController extends GetxController {
     try {
       isLoading.value = true;
 
+      print('DEBUG: Creating habit with name: ${habit.name}');
+      print('DEBUG: Selected entityId: ${selectedEntityId.value}');
+
       // S'assurer que l'entité est définie
+      if (selectedEntityId.value.isEmpty) {
+        Get.snackbar('Erreur', 'Aucune entité sélectionnée. Veuillez recharger l\'application.');
+        return false;
+      }
+
       final habitWithEntity = habit.copyWith(
         entityId: habit.entityId.isNotEmpty ? habit.entityId : selectedEntityId.value,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
+      print('DEBUG: Habit data to save: ${habitWithEntity.toJson()}');
+
       final success = await _habitService.createHabit(habitWithEntity);
+
+      print('DEBUG: Create habit result: $success');
 
       if (success) {
         await loadHabits(); // Recharger les données
         Get.snackbar('Succès', 'Habitude créée avec succès');
+        print('DEBUG: Habits loaded after creation: ${_habits.length}');
+      } else {
+        Get.snackbar('Erreur', 'Échec de la création de l\'habitude');
       }
 
       return success;
     } catch (e) {
+      print('DEBUG: Exception during habit creation: $e');
       Get.snackbar('Erreur', 'Erreur lors de la création de l\'habitude: $e');
       return false;
     } finally {

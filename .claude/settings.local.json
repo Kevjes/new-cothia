@@ -1,14 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir:*)",
-      "Bash(flutter pub:*)",
-      "Bash(flutter clean:*)",
+      "Bash(ls:*)",
       "Bash(flutter analyze:*)",
-      "Bash(flutter build:*)",
       "Bash(flutter run:*)",
-      "Bash(move budgets_main.dart budgets_list.dart)",
-      "Bash(find:*)"
+      "Bash(flutter clean:*)"
     ],
     "deny": [],
     "ask": []

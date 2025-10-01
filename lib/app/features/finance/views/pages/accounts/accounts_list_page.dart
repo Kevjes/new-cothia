@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controllers/finance_controller.dart';
+import '../../../controllers/automation_controller.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../models/account_model.dart';
 import 'account_create_page.dart';
@@ -11,6 +12,9 @@ class AccountsListPage extends GetView<FinanceController> {
 
   @override
   Widget build(BuildContext context) {
+    // Initialiser le controller d'automatisation
+    final automationController = Get.put(AutomationController());
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -19,7 +23,10 @@ class AccountsListPage extends GetView<FinanceController> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => controller.refreshAllData(),
+            onPressed: () {
+              controller.refreshAllData();
+              automationController.loadRules();
+            },
           ),
         ],
       ),
@@ -33,23 +40,27 @@ class AccountsListPage extends GetView<FinanceController> {
         }
 
         return RefreshIndicator(
-          onRefresh: controller.refreshAllData,
+          onRefresh: () async {
+            await controller.refreshAllData();
+            await automationController.loadRules();
+          },
           child: Column(
             children: [
               _buildStatsHeader(),
               Expanded(
                 child: controller.accounts.isEmpty
                     ? _buildEmptyState()
-                    : _buildAccountsList(),
+                    : _buildAccountsGroupedByType(automationController),
               ),
             ],
           ),
         );
       }),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToCreateAccount(),
         backgroundColor: AppColors.secondary,
-        child: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Nouveau', style: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -135,20 +146,22 @@ class AccountsListPage extends GetView<FinanceController> {
 
   Widget _buildStatCard(String label, String value, Color color, IconData icon) {
     return Card(
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 24),
+            Icon(icon, color: color, size: 28),
             const SizedBox(height: 8),
             Text(
               value,
-              style: Get.textTheme.titleMedium?.copyWith(
+              style: Get.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 4),
             Text(
               label,
               style: Get.textTheme.bodySmall?.copyWith(
@@ -207,117 +220,252 @@ class AccountsListPage extends GetView<FinanceController> {
     );
   }
 
-  Widget _buildAccountsList() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: controller.accounts.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final account = controller.accounts[index];
-        return _buildAccountCard(account);
-      },
+  Widget _buildAccountsGroupedByType(AutomationController automationController) {
+    // Séparer les comptes favoris et les autres
+    final favoriteAccounts = controller.accounts.where((a) => a.isFavorite).toList();
+    final regularAccounts = controller.accounts.where((a) => !a.isFavorite).toList();
+
+    // Grouper les comptes réguliers par type
+    final Map<AccountType, List<AccountModel>> accountsByType = {};
+    for (final account in regularAccounts) {
+      if (!accountsByType.containsKey(account.type)) {
+        accountsByType[account.type] = [];
+      }
+      accountsByType[account.type]!.add(account);
+    }
+
+    // Ordre d'affichage des types
+    final typeOrder = [
+      AccountType.checking,
+      AccountType.savings,
+      AccountType.cash,
+      AccountType.credit,
+      AccountType.virtual,
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      children: [
+        // Section des favoris
+        if (favoriteAccounts.isNotEmpty) ...[
+          _buildFavoritesSection(favoriteAccounts, automationController),
+          const SizedBox(height: 16),
+        ],
+        // Sections par type
+        ...typeOrder.map((type) {
+          final accounts = accountsByType[type];
+          if (accounts == null || accounts.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          return _buildAccountTypeSection(type, accounts, automationController);
+        }),
+      ],
     );
   }
 
-  Widget _buildAccountCard(AccountModel account) {
+  Widget _buildFavoritesSection(
+    List<AccountModel> accounts,
+    AutomationController automationController,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.star,
+                color: Colors.amber,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Favoris',
+                style: Get.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...accounts.map((account) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _buildCompactAccountCard(account, automationController),
+            )),
+        const Divider(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildAccountTypeSection(
+    AccountType type,
+    List<AccountModel> accounts,
+    AutomationController automationController,
+  ) {
+    // Calculer le solde total pour ce type
+    final totalBalance = accounts.fold<double>(
+      0,
+      (sum, account) => sum + account.currentBalance,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          child: Row(
+            children: [
+              Icon(
+                _getAccountTypeIcon(type),
+                color: AppColors.primary,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _getAccountTypeName(type),
+                      style: Get.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${accounts.length} compte${accounts.length > 1 ? 's' : ''} • ${totalBalance.toStringAsFixed(0)} FCFA',
+                      style: Get.textTheme.bodySmall?.copyWith(
+                        color: AppColors.hint,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...accounts.map((account) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _buildCompactAccountCard(account, automationController),
+            )),
+        const Divider(height: 32),
+      ],
+    );
+  }
+
+  Widget _buildCompactAccountCard(
+    AccountModel account,
+    AutomationController automationController,
+  ) {
     final balanceColor = account.currentBalance >= 0 ? AppColors.success : AppColors.error;
 
+    // Compter les automatisations liées à ce compte
+    final relatedRules = automationController.rules.where((rule) {
+      return rule.action.sourceAccountId == account.id ||
+          rule.action.destinationAccountId == account.id;
+    }).toList();
+
+    final hasAutomations = relatedRules.isNotEmpty;
+    final activeAutomations = relatedRules.where((r) => r.isActive).length;
+
     return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: InkWell(
         onTap: () => _navigateToAccountDetails(account),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.secondary.withOpacity(0.1),
-                    child: Icon(
-                      _getAccountIcon(account.type),
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              // Icône du compte
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  _getAccountIcon(account.type),
+                  color: AppColors.secondary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Infos du compte
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Text(
-                          account.name,
-                          style: Get.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                        if (account.isFavorite) ...[
+                          Icon(
+                            Icons.star,
+                            color: Colors.amber,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        Expanded(
+                          child: Text(
+                            account.name,
+                            style: Get.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Text(
-                          account.typeDisplayName,
-                          style: Get.textTheme.bodySmall?.copyWith(
-                            color: AppColors.hint,
+                        if (hasAutomations)
+                          Icon(
+                            Icons.bolt,
+                            size: 14,
+                            color: AppColors.primary.withValues(alpha: 0.7),
                           ),
-                        ),
                       ],
                     ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${account.currentBalance.toStringAsFixed(0)} FCFA',
-                        style: Get.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: balanceColor,
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      account.typeDisplayName,
+                      style: Get.textTheme.bodySmall?.copyWith(
+                        color: AppColors.hint,
+                        fontSize: 11,
                       ),
-                      Text(
-                        'Solde actuel',
-                        style: Get.textTheme.bodySmall?.copyWith(
-                          color: AppColors.hint,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              // Solde
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${account.currentBalance.toStringAsFixed(0)} FCFA',
+                    style: Get.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: balanceColor,
+                    ),
                   ),
+                  if (hasAutomations) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '$activeAutomations règle${activeAutomations > 1 ? 's' : ''}',
+                      style: Get.textTheme.labelSmall?.copyWith(
+                        color: AppColors.primary.withValues(alpha: 0.7),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              if (account.description != null && account.description!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  account.description!,
-                  style: Get.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.hint,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _editAccount(account),
-                      icon: const Icon(Icons.edit, size: 18),
-                      label: const Text('Modifier'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.secondary,
-                        side: BorderSide(color: AppColors.secondary),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _navigateToAccountDetails(account),
-                      icon: const Icon(Icons.visibility, size: 18),
-                      label: const Text('Détails'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondary,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: AppColors.hint,
               ),
             ],
           ),
@@ -333,11 +481,30 @@ class AccountsListPage extends GetView<FinanceController> {
       case AccountType.savings:
         return Icons.savings;
       case AccountType.cash:
-        return Icons.money;
+        return Icons.payments;
       case AccountType.credit:
         return Icons.credit_card;
       case AccountType.virtual:
         return Icons.account_balance_wallet;
+    }
+  }
+
+  IconData _getAccountTypeIcon(AccountType type) {
+    return _getAccountIcon(type);
+  }
+
+  String _getAccountTypeName(AccountType type) {
+    switch (type) {
+      case AccountType.checking:
+        return 'Comptes Courants';
+      case AccountType.savings:
+        return 'Comptes Épargne';
+      case AccountType.cash:
+        return 'Espèces';
+      case AccountType.credit:
+        return 'Cartes de Crédit';
+      case AccountType.virtual:
+        return 'Comptes Virtuels';
     }
   }
 
@@ -347,9 +514,5 @@ class AccountsListPage extends GetView<FinanceController> {
 
   void _navigateToAccountDetails(AccountModel account) {
     Get.to(() => AccountDetailsPage(account: account));
-  }
-
-  void _editAccount(AccountModel account) {
-    Get.to(() => AccountCreatePage(account: account));
   }
 }
